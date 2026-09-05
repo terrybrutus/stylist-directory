@@ -37141,9 +37141,9 @@ function createActor(canisterId, _uploadFile, _downloadFile, options = {}) {
 }
 const DIRECTORY_KEY = ["directory"];
 function useInitializeAccess() {
-  const { actor } = useActor(createActor);
+  const { actor, isFetching } = useActor(createActor);
   const queryClient2 = useQueryClient();
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async () => {
       if (!actor) throw new Error("The secure workspace is not ready yet.");
       await actor._initialize_access_control();
@@ -37153,6 +37153,10 @@ function useInitializeAccess() {
       void queryClient2.invalidateQueries({ queryKey: DIRECTORY_KEY });
     }
   });
+  return {
+    ...mutation,
+    isActorReady: !!actor && !isFetching
+  };
 }
 function useDirectory(enabled = true) {
   const { actor, isFetching } = useActor(createActor);
@@ -38549,29 +38553,46 @@ function Workspace() {
   const [view, setView] = reactExports.useState("route");
   const directory = useDirectory(initialized);
   reactExports.useEffect(() => {
-    if (!initialized && !initialize.isPending && !initialize.isError) {
+    if (!initialized && initialize.isActorReady && !initialize.isPending && !initialize.isError) {
       initialize.mutate(void 0, {
         onSuccess: () => setInitialized(true)
       });
     }
-  }, [initialize, initialized]);
-  if (!initialized || directory.isLoading) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsxs("main", { className: "loading-screen", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "animate-spin" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Opening your secure workspace…" })
-    ] });
-  }
-  if (initialize.isError || directory.isError || !directory.data) {
+  }, [
+    initialize.isActorReady,
+    initialize.isError,
+    initialize.isPending,
+    initialize.mutate,
+    initialized
+  ]);
+  if (initialize.isError || initialized && directory.isError) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("main", { className: "login-shell", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "login-card", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "brand-mark", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, {}) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "eyebrow", children: "Access protected" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { children: "This workspace is private." }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "login-copy", children: "The owner can grant team access when role management is enabled." }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "login-copy", children: "We couldn’t finish opening this workspace. Sign out and try again; your saved records have not been changed." }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        Button,
+        {
+          className: "mb-2 h-12 w-full",
+          onClick: () => initialize.reset(),
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(RotateCcw, {}),
+            " Try again"
+          ]
+        }
+      ),
       /* @__PURE__ */ jsxRuntimeExports.jsxs(Button, { variant: "outline", className: "h-12 w-full", onClick: clear, children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(LogOut, {}),
         " Sign out"
       ] })
     ] }) });
+  }
+  if (!initialized || directory.isLoading || !directory.data) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs("main", { className: "loading-screen", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "animate-spin" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Opening your secure workspace…" })
+    ] });
   }
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "app-shell", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { className: "app-header", children: [

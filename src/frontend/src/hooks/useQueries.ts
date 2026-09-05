@@ -5,9 +5,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 const DIRECTORY_KEY = ["directory"] as const;
 
 export function useInitializeAccess() {
-  const { actor } = useActor(createActor);
+  const { actor, isFetching } = useActor(createActor);
   const queryClient = useQueryClient();
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async () => {
       if (!actor) throw new Error("The secure workspace is not ready yet.");
       await actor._initialize_access_control();
@@ -17,6 +17,10 @@ export function useInitializeAccess() {
       void queryClient.invalidateQueries({ queryKey: DIRECTORY_KEY });
     },
   });
+  return {
+    ...mutation,
+    isActorReady: !!actor && !isFetching,
+  };
 }
 
 export function useDirectory(enabled = true) {

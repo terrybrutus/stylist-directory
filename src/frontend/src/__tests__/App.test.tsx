@@ -17,6 +17,7 @@ vi.stubGlobal(
 );
 
 const state: Dashboard = { stylists: [], requests: [], audit: [] };
+let actorReady = true;
 
 function makeStylist(input: StylistInput): Stylist {
   return {
@@ -78,7 +79,10 @@ const mockActor = {
 };
 
 vi.mock("@caffeineai/core-infrastructure", () => ({
-  useActor: () => ({ actor: mockActor, isFetching: false }),
+  useActor: () => ({
+    actor: actorReady ? mockActor : undefined,
+    isFetching: !actorReady,
+  }),
   useInternetIdentity: () => ({
     isAuthenticated: true,
     isInitializing: false,
@@ -108,6 +112,7 @@ describe("FairChair", () => {
   afterEach(cleanup);
 
   beforeEach(() => {
+    actorReady = true;
     state.stylists.length = 0;
     state.requests.length = 0;
     state.audit.length = 0;
@@ -124,6 +129,34 @@ describe("FairChair", () => {
         "Availability first. Service fit next. Fairness always.",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("waits for the authenticated actor instead of deadlocking initialization", async () => {
+    actorReady = false;
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const view = render(
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>,
+    );
+    expect(
+      screen.getByText("Opening your secure workspace…"),
+    ).toBeInTheDocument();
+    expect(mockActor._initialize_access_control).not.toHaveBeenCalled();
+
+    actorReady = true;
+    view.rerender(
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>,
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Find the right chair." }),
+    ).toBeInTheDocument();
+    expect(mockActor._initialize_access_control).toHaveBeenCalledOnce();
   });
 
   it("adds a complete stylist profile", async () => {

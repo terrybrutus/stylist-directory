@@ -1130,23 +1130,25 @@ function Workspace() {
   const directory = useDirectory(initialized);
 
   useEffect(() => {
-    if (!initialized && !initialize.isPending && !initialize.isError) {
+    if (
+      !initialized &&
+      initialize.isActorReady &&
+      !initialize.isPending &&
+      !initialize.isError
+    ) {
       initialize.mutate(undefined, {
         onSuccess: () => setInitialized(true),
       });
     }
-  }, [initialize, initialized]);
+  }, [
+    initialize.isActorReady,
+    initialize.isError,
+    initialize.isPending,
+    initialize.mutate,
+    initialized,
+  ]);
 
-  if (!initialized || directory.isLoading) {
-    return (
-      <main className="loading-screen">
-        <LoaderCircle className="animate-spin" />
-        <p>Opening your secure workspace…</p>
-      </main>
-    );
-  }
-
-  if (initialize.isError || directory.isError || !directory.data) {
+  if (initialize.isError || (initialized && directory.isError)) {
     return (
       <main className="login-shell">
         <section className="login-card">
@@ -1156,12 +1158,28 @@ function Workspace() {
           <p className="eyebrow">Access protected</p>
           <h1>This workspace is private.</h1>
           <p className="login-copy">
-            The owner can grant team access when role management is enabled.
+            We couldn’t finish opening this workspace. Sign out and try again;
+            your saved records have not been changed.
           </p>
+          <Button
+            className="mb-2 h-12 w-full"
+            onClick={() => initialize.reset()}
+          >
+            <RotateCcw /> Try again
+          </Button>
           <Button variant="outline" className="h-12 w-full" onClick={clear}>
             <LogOut /> Sign out
           </Button>
         </section>
+      </main>
+    );
+  }
+
+  if (!initialized || directory.isLoading || !directory.data) {
+    return (
+      <main className="loading-screen">
+        <LoaderCircle className="animate-spin" />
+        <p>Opening your secure workspace…</p>
       </main>
     );
   }
