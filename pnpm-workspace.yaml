@@ -14,3 +14,8 @@ onlyBuiltDependencies:
 # The client library the lane imports is unaffected.
 ignoredBuiltDependencies:
   - '@dfinity/pic'
+allowBuilds:
+  '@biomejs/biome': true
+  '@dfinity/pic': false
+  esbuild: true
+  sharp: true

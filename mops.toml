@@ -15,7 +15,7 @@ path = ".old/src/backend/dist/backend.most"
 
 [canisters.backend.migrations]
 chain = "src/backend/migrations"
-check-limit = 1
+check-limit = 2
 
 [toolchain]
 moc = "1.15.0"

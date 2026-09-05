@@ -1,35 +1,72 @@
-type Value = 
- variant {
-   "bool": bool;
-   float: float64;
-   "int": int;
-   "nat": nat;
-   "null";
-   "text": text;
- };
-type UserRole = 
+type UserRole =
  variant {
    admin;
    guest;
    user;
  };
-type Stylist = 
+type Stylist__1 =
  record {
    availability: text;
    name: text;
    specialty: text;
  };
-type Result__1 = 
+type StylistInput =
+ record {
+   acceptsNewClients: bool;
+   availabilityExpiresAt: nat;
+   availabilityNote: text;
+   availabilityStatus: text;
+   name: text;
+   phone: text;
+   services: vec ServicePreference;
+ };
+type Stylist =
+ record {
+   acceptsNewClients: bool;
+   active: bool;
+   assignments: nat;
+   availabilityExpiresAt: nat;
+   availabilityNote: text;
+   availabilityStatus: text;
+   createdAt: nat;
+   declines: nat;
+   eligibleOpportunities: nat;
+   id: nat;
+   lastAssignedAt: nat;
+   name: text;
+   noResponses: nat;
+   phone: text;
+   revision: nat;
+   services: vec ServicePreference;
+   updatedAt: nat;
+ };
+type ServicePreference =
+ record {
+   level: text;
+   name: text;
+ };
+type RoutingResult =
+ record {
+   backup: opt Stylist;
+   recommended: opt Stylist;
+   request: ClientRequest;
+ };
+type RouteInput =
+ record {
+   clientName: text;
+   idempotencyKey: text;
+   notes: text;
+   requestedTime: text;
+   "service": text;
+   specialtyMatters: bool;
+   timing: text;
+ };
+type Result =
  variant {
    err: Error;
    ok;
  };
-type Result = 
- record {
-   hasMore: bool;
-   rows: vec vec Cell;
- };
-type Error = 
+type Error =
  variant {
    AmbiguousAttribute: record {
                          field: text;
@@ -51,21 +88,68 @@ type Error =
    UnknownNonce;
    UntrustedSsoSource: record {domain: text;};
  };
-type Cell = 
+type Dashboard =
  record {
-   name: text;
-   value: Value;
+   audit: vec AuditEvent;
+   requests: vec ClientRequest;
+   stylists: vec Stylist;
+ };
+type ClientRequest =
+ record {
+   assignedStylistId: opt nat;
+   backupStylistId: opt nat;
+   clientName: text;
+   createdAt: nat;
+   explanation: text;
+   id: nat;
+   idempotencyKey: text;
+   notes: text;
+   recommendedStylistId: opt nat;
+   requestedTime: text;
+   revision: nat;
+   "service": text;
+   specialtyMatters: bool;
+   status: text;
+   timing: text;
+   updatedAt: nat;
+ };
+type Backup =
+ record {
+   dashboard: Dashboard;
+   exportedAt: nat;
+   version: nat;
+ };
+type AuditEvent =
+ record {
+   createdAt: nat;
+   detail: text;
+   id: nat;
+   kind: text;
+   requestId: opt nat;
+   stylistId: opt nat;
  };
 service : {
   _initialize_access_control: () -> ();
-  _internet_identity_sign_in_finish: () -> (Result__1);
+  _internet_identity_sign_in_finish: () -> (Result);
   _internet_identity_sign_in_start: () -> (blob);
-  addStylist: (stylist: Stylist) -> ();
+  addStylist: (stylist: Stylist__1) -> ();
   assignCallerUserRole: (user: principal, role: UserRole) -> ();
-  execute: (qJson: text) -> (Result) query;
+  assignRequest: (requestId: nat, stylistId: nat, expectedRevision: nat,
+   note: text) -> (ClientRequest);
+  createStylist: (input: StylistInput) -> (Stylist);
+  exportBackup: () -> (Backup) query;
   getApiDoc: () -> (text) query;
   getCallerUserRole: () -> (UserRole) query;
-  getStylists: () -> (vec Stylist) query;
+  getDashboard: () -> (Dashboard) query;
+  getStylists: () -> (vec Stylist__1) query;
   isCallerAdmin: () -> (bool) query;
-  schema: () -> (text) query;
+  routeClient: (input: RouteInput) -> (RoutingResult);
+  setRequestStatus: (requestId: nat, status: text, expectedRevision:
+   nat, reason: text) -> (ClientRequest);
+  setStylistActive: (id: nat, active: bool, expectedRevision: nat) ->
+   (Stylist);
+  updateStylist: (id: nat, input: StylistInput, expectedRevision: nat) ->
+   (Stylist);
+  useBackup: (requestId: nat, expectedRevision: nat, reason: text) ->
+   (RoutingResult);
 }

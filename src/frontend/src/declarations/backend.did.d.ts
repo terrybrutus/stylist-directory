@@ -10,7 +10,42 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
-export interface Cell { 'value' : Value, 'name' : string }
+export interface AuditEvent {
+  'id' : bigint,
+  'requestId' : [] | [bigint],
+  'stylistId' : [] | [bigint],
+  'kind' : string,
+  'createdAt' : bigint,
+  'detail' : string,
+}
+export interface Backup {
+  'dashboard' : Dashboard,
+  'exportedAt' : bigint,
+  'version' : bigint,
+}
+export interface ClientRequest {
+  'id' : bigint,
+  'service' : string,
+  'status' : string,
+  'assignedStylistId' : [] | [bigint],
+  'recommendedStylistId' : [] | [bigint],
+  'idempotencyKey' : string,
+  'timing' : string,
+  'backupStylistId' : [] | [bigint],
+  'clientName' : string,
+  'explanation' : string,
+  'createdAt' : bigint,
+  'specialtyMatters' : boolean,
+  'updatedAt' : bigint,
+  'notes' : string,
+  'requestedTime' : string,
+  'revision' : bigint,
+}
+export interface Dashboard {
+  'audit' : Array<AuditEvent>,
+  'stylists' : Array<Stylist>,
+  'requests' : Array<ClientRequest>,
+}
 export type Error = { 'FrontendOriginsNotConfigured' : null } |
   {
     'MixedSsoSources' : {
@@ -26,10 +61,52 @@ export type Error = { 'FrontendOriginsNotConfigured' : null } |
   { 'UntrustedSsoSource' : { 'domain' : string } } |
   { 'MissingField' : string } |
   { 'FrontendOriginMismatch' : { 'got' : string, 'expected' : Array<string> } };
-export interface Result { 'hasMore' : boolean, 'rows' : Array<Array<Cell>> }
-export type Result__1 = { 'ok' : null } |
+export type Result = { 'ok' : null } |
   { 'err' : Error };
+export interface RouteInput {
+  'service' : string,
+  'idempotencyKey' : string,
+  'timing' : string,
+  'clientName' : string,
+  'specialtyMatters' : boolean,
+  'notes' : string,
+  'requestedTime' : string,
+}
+export interface RoutingResult {
+  'request' : ClientRequest,
+  'backup' : [] | [Stylist],
+  'recommended' : [] | [Stylist],
+}
+export interface ServicePreference { 'name' : string, 'level' : string }
 export interface Stylist {
+  'id' : bigint,
+  'active' : boolean,
+  'assignments' : bigint,
+  'name' : string,
+  'createdAt' : bigint,
+  'acceptsNewClients' : boolean,
+  'availabilityExpiresAt' : bigint,
+  'updatedAt' : bigint,
+  'eligibleOpportunities' : bigint,
+  'noResponses' : bigint,
+  'lastAssignedAt' : bigint,
+  'availabilityNote' : string,
+  'phone' : string,
+  'declines' : bigint,
+  'revision' : bigint,
+  'services' : Array<ServicePreference>,
+  'availabilityStatus' : string,
+}
+export interface StylistInput {
+  'name' : string,
+  'acceptsNewClients' : boolean,
+  'availabilityExpiresAt' : bigint,
+  'availabilityNote' : string,
+  'phone' : string,
+  'services' : Array<ServicePreference>,
+  'availabilityStatus' : string,
+}
+export interface Stylist__1 {
   'name' : string,
   'specialty' : string,
   'availability' : string,
@@ -37,24 +114,31 @@ export interface Stylist {
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
-export type Value = { 'int' : bigint } |
-  { 'nat' : bigint } |
-  { 'float' : number } |
-  { 'bool' : boolean } |
-  { 'null' : null } |
-  { 'text' : string };
 export interface _SERVICE {
   '_initialize_access_control' : ActorMethod<[], undefined>,
-  '_internet_identity_sign_in_finish' : ActorMethod<[], Result__1>,
+  '_internet_identity_sign_in_finish' : ActorMethod<[], Result>,
   '_internet_identity_sign_in_start' : ActorMethod<[], Uint8Array>,
-  'addStylist' : ActorMethod<[Stylist], undefined>,
+  'addStylist' : ActorMethod<[Stylist__1], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
-  'execute' : ActorMethod<[string], Result>,
+  'assignRequest' : ActorMethod<
+    [bigint, bigint, bigint, string],
+    ClientRequest
+  >,
+  'createStylist' : ActorMethod<[StylistInput], Stylist>,
+  'exportBackup' : ActorMethod<[], Backup>,
   'getApiDoc' : ActorMethod<[], string>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
-  'getStylists' : ActorMethod<[], Array<Stylist>>,
+  'getDashboard' : ActorMethod<[], Dashboard>,
+  'getStylists' : ActorMethod<[], Array<Stylist__1>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
-  'schema' : ActorMethod<[], string>,
+  'routeClient' : ActorMethod<[RouteInput], RoutingResult>,
+  'setRequestStatus' : ActorMethod<
+    [bigint, string, bigint, string],
+    ClientRequest
+  >,
+  'setStylistActive' : ActorMethod<[bigint, boolean, bigint], Stylist>,
+  'updateStylist' : ActorMethod<[bigint, StylistInput, bigint], Stylist>,
+  'useBackup' : ActorMethod<[bigint, bigint, string], RoutingResult>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

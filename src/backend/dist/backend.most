@@ -1,13 +1,85 @@
 // Version: 4.0.0
+type AccessControlState__730328731 =
+  {
+    var adminAssigned : Bool;
+    userRoles : Map__386906547<Principal, UserRole__72672207>
+  };
 type AccessControlState__971608863 =
   {
     var adminAssigned : Bool;
     userRoles : Map__386906547<Principal, UserRole__50743422>
   };
+type AuditEvent__428666571 =
+  {
+    createdAt : Nat;
+    detail : Text;
+    id : Nat;
+    kind : Text;
+    requestId : ?Nat;
+    stylistId : ?Nat
+  };
+type AuditEvent__688051965 =
+  {
+    createdAt : Nat;
+    detail : Text;
+    id : Nat;
+    kind : Text;
+    requestId : ?Nat;
+    stylistId : ?Nat
+  };
+type ClientRequest__1041426119 =
+  {
+    assignedStylistId : ?Nat;
+    backupStylistId : ?Nat;
+    clientName : Text;
+    createdAt : Nat;
+    explanation : Text;
+    id : Nat;
+    idempotencyKey : Text;
+    notes : Text;
+    recommendedStylistId : ?Nat;
+    requestedTime : Text;
+    revision : Nat;
+    service : Text;
+    specialtyMatters : Bool;
+    status : Text;
+    timing : Text;
+    updatedAt : Nat
+  };
+type ClientRequest__936450969 =
+  {
+    assignedStylistId : ?Nat;
+    backupStylistId : ?Nat;
+    clientName : Text;
+    createdAt : Nat;
+    explanation : Text;
+    id : Nat;
+    idempotencyKey : Text;
+    notes : Text;
+    recommendedStylistId : ?Nat;
+    requestedTime : Text;
+    revision : Nat;
+    service : Text;
+    specialtyMatters : Bool;
+    status : Text;
+    timing : Text;
+    updatedAt : Nat
+  };
 type Data__265875254<K, V> = {var count : Nat__58649523; kvs : [var ?(K, V)]};
+type DirectoryState__94713862 =
+  {
+    audit : List__89170296<AuditEvent__428666571>;
+    var nextAuditId : Nat;
+    var nextRequestId : Nat;
+    var nextStylistId : Nat;
+    requests : List__89170296<ClientRequest__1041426119>;
+    stylists : List__89170296<Stylist__815244494>
+  };
 type Internal__161573640<K, V> =
   {children : [var ?Node__430031793<K, V>]; data : Data__265875254<K, V>};
 type Leaf__1045638083<K, V> = {data : Data__265875254<K, V>};
+type LegacyStylist__469366777 =
+  {availability : Text; name : Text; specialty : Text};
 type List__1004628775<T> =
   {
     var blockIndex : Nat__58649523;
@@ -21,6 +93,12 @@ type Map__386906547<K, V> = Map__670138087<K, V>;
 type Map__670138087<K, V> = Map__13625999<K, V>;
 type Nat__58649523 = Nat__920180692;
 type Nat__920180692 = Nat;
+type NewActor__629158573 =
+  {
+    accessControlState : AccessControlState__730328731;
+    directoryState : DirectoryState__94713862;
+    stylists : List__89170296<LegacyStylist__469366777>
+  };
 type NewActor__960473320 =
   {
     accessControlState : AccessControlState__971608863;
@@ -28,21 +106,79 @@ type NewActor__960473320 =
   };
 type Node__430031793<K, V> =
   {#internal : Internal__161573640<K, V>; #leaf : Leaf__1045638083<K, V>};
+type OldActor__192375838 =
+  {
+    accessControlState : AccessControlState__730328731;
+    stylists : List__89170296<LegacyStylist__469366777>
+  };
 type OldActor__363696330 = {};
+type ServicePreference__596751298 = {level : Text; name : Text};
+type ServicePreference__687555106 = {level : Text; name : Text};
 type Stylist__503965103 =
   {availability : Text; name : Text; specialty : Text};
 type Stylist__631588365 =
   {availability : Text; name : Text; specialty : Text};
+type Stylist__815244494 =
+  {
+    acceptsNewClients : Bool;
+    active : Bool;
+    assignments : Nat;
+    availabilityExpiresAt : Nat;
+    availabilityNote : Text;
+    availabilityStatus : Text;
+    createdAt : Nat;
+    declines : Nat;
+    eligibleOpportunities : Nat;
+    id : Nat;
+    lastAssignedAt : Nat;
+    name : Text;
+    noResponses : Nat;
+    phone : Text;
+    revision : Nat;
+    services : [ServicePreference__596751298];
+    updatedAt : Nat
+  };
+type Stylist__827165973 =
+  {
+    acceptsNewClients : Bool;
+    active : Bool;
+    assignments : Nat;
+    availabilityExpiresAt : Nat;
+    availabilityNote : Text;
+    availabilityStatus : Text;
+    createdAt : Nat;
+    declines : Nat;
+    eligibleOpportunities : Nat;
+    id : Nat;
+    lastAssignedAt : Nat;
+    name : Text;
+    noResponses : Nat;
+    phone : Text;
+    revision : Nat;
+    services : [ServicePreference__687555106];
+    updatedAt : Nat
+  };
 type UserRole__50743422 = {#admin; #guest; #user};
+type UserRole__72672207 = {#admin; #guest; #user};
 type UserRole__91647283 = {#admin; #guest; #user};
 {
-  "20260905_000000" : (_old : OldActor__363696330) -> NewActor__960473320
+  "20260905_000000" : (_old : OldActor__363696330) -> NewActor__960473320;
+  "20260905_190000" : (old : OldActor__192375838) -> NewActor__629158573
 }
 actor  {
   stable accessControlState :
     {
       var adminAssigned : Bool;
       userRoles : Map__386906547<Principal, UserRole__91647283>
+    };
+  stable directoryState :
+    {
+      audit : List__89170296<AuditEvent__688051965>;
+      var nextAuditId : Nat;
+      var nextRequestId : Nat;
+      var nextStylistId : Nat;
+      requests : List__89170296<ClientRequest__936450969>;
+      stylists : List__89170296<Stylist__827165973>
     };
   stable stylists :
     {

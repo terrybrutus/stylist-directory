@@ -53,22 +53,78 @@ function record_opt_to_undefined<T>(arg: T | null): T | undefined {
 }
 import { ExternalBlob } from "@caffeineai/object-storage";
 export { ExternalBlob } from "@caffeineai/object-storage";
-export interface Result {
-    hasMore: boolean;
-    rows: Array<Array<Cell>>;
+export interface AuditEvent {
+    id: bigint;
+    requestId?: bigint;
+    stylistId?: bigint;
+    kind: string;
+    createdAt: bigint;
+    detail: string;
 }
-export interface Cell {
-    value: Value;
-    name: string;
-}
-export type Result__1 = {
+export type Result = {
     __kind__: "ok";
     ok: null;
 } | {
     __kind__: "err";
     err: Error_;
 };
+export interface ClientRequest {
+    id: bigint;
+    service: string;
+    status: string;
+    assignedStylistId?: bigint;
+    recommendedStylistId?: bigint;
+    idempotencyKey: string;
+    timing: string;
+    backupStylistId?: bigint;
+    clientName: string;
+    explanation: string;
+    createdAt: bigint;
+    specialtyMatters: boolean;
+    updatedAt: bigint;
+    notes: string;
+    requestedTime: string;
+    revision: bigint;
+}
+export interface Backup {
+    dashboard: Dashboard;
+    exportedAt: bigint;
+    version: bigint;
+}
+export interface StylistInput {
+    name: string;
+    acceptsNewClients: boolean;
+    availabilityExpiresAt: bigint;
+    availabilityNote: string;
+    phone: string;
+    services: Array<ServicePreference>;
+    availabilityStatus: string;
+}
+export interface Dashboard {
+    audit: Array<AuditEvent>;
+    stylists: Array<Stylist>;
+    requests: Array<ClientRequest>;
+}
 export interface Stylist {
+    id: bigint;
+    active: boolean;
+    assignments: bigint;
+    name: string;
+    createdAt: bigint;
+    acceptsNewClients: boolean;
+    availabilityExpiresAt: bigint;
+    updatedAt: bigint;
+    eligibleOpportunities: bigint;
+    noResponses: bigint;
+    lastAssignedAt: bigint;
+    availabilityNote: string;
+    phone: string;
+    declines: bigint;
+    revision: bigint;
+    services: Array<ServicePreference>;
+    availabilityStatus: string;
+}
+export interface Stylist__1 {
     name: string;
     specialty: string;
     availability: string;
@@ -117,25 +173,24 @@ export type Error_ = {
         expected: Array<string>;
     };
 };
-export type Value = {
-    __kind__: "int";
-    int: bigint;
-} | {
-    __kind__: "nat";
-    nat: bigint;
-} | {
-    __kind__: "float";
-    float: number;
-} | {
-    __kind__: "bool";
-    bool: boolean;
-} | {
-    __kind__: "null";
-    null: null;
-} | {
-    __kind__: "text";
-    text: string;
-};
+export interface RouteInput {
+    service: string;
+    idempotencyKey: string;
+    timing: string;
+    clientName: string;
+    specialtyMatters: boolean;
+    notes: string;
+    requestedTime: string;
+}
+export interface RoutingResult {
+    request: ClientRequest;
+    backup?: Stylist;
+    recommended?: Stylist;
+}
+export interface ServicePreference {
+    name: string;
+    level: string;
+}
 export enum UserRole {
     admin = "admin",
     user = "user",
@@ -143,18 +198,25 @@ export enum UserRole {
 }
 export interface backendInterface {
     _initialize_access_control(): Promise<void>;
-    _internet_identity_sign_in_finish(): Promise<Result__1>;
+    _internet_identity_sign_in_finish(): Promise<Result>;
     _internet_identity_sign_in_start(): Promise<Uint8Array>;
-    addStylist(stylist: Stylist): Promise<void>;
+    addStylist(stylist: Stylist__1): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
-    execute(qJson: string): Promise<Result>;
+    assignRequest(requestId: bigint, stylistId: bigint, expectedRevision: bigint, note: string): Promise<ClientRequest>;
+    createStylist(input: StylistInput): Promise<Stylist>;
+    exportBackup(): Promise<Backup>;
     getApiDoc(): Promise<string>;
     getCallerUserRole(): Promise<UserRole>;
-    getStylists(): Promise<Array<Stylist>>;
+    getDashboard(): Promise<Dashboard>;
+    getStylists(): Promise<Array<Stylist__1>>;
     isCallerAdmin(): Promise<boolean>;
-    schema(): Promise<string>;
+    routeClient(input: RouteInput): Promise<RoutingResult>;
+    setRequestStatus(requestId: bigint, status: string, expectedRevision: bigint, reason: string): Promise<ClientRequest>;
+    setStylistActive(id: bigint, active: boolean, expectedRevision: bigint): Promise<Stylist>;
+    updateStylist(id: bigint, input: StylistInput, expectedRevision: bigint): Promise<Stylist>;
+    useBackup(requestId: bigint, expectedRevision: bigint, reason: string): Promise<RoutingResult>;
 }
-import type { Cell as _Cell, Error as _Error, Result as _Result, Result__1 as _Result__1, UserRole as _UserRole, Value as _Value } from "./declarations/backend.did.d.ts";
+import type { AuditEvent as _AuditEvent, Backup as _Backup, ClientRequest as _ClientRequest, Dashboard as _Dashboard, Error as _Error, Result as _Result, RoutingResult as _RoutingResult, Stylist as _Stylist, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async _initialize_access_control(): Promise<void> {
@@ -171,18 +233,18 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async _internet_identity_sign_in_finish(): Promise<Result__1> {
+    async _internet_identity_sign_in_finish(): Promise<Result> {
         if (this.processError) {
             try {
                 const result = await this.actor._internet_identity_sign_in_finish();
-                return from_candid_Result__1_n1(this._uploadFile, this._downloadFile, result);
+                return from_candid_Result_n1(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor._internet_identity_sign_in_finish();
-            return from_candid_Result__1_n1(this._uploadFile, this._downloadFile, result);
+            return from_candid_Result_n1(this._uploadFile, this._downloadFile, result);
         }
     }
     async _internet_identity_sign_in_start(): Promise<Uint8Array> {
@@ -199,7 +261,7 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async addStylist(arg0: Stylist): Promise<void> {
+    async addStylist(arg0: Stylist__1): Promise<void> {
         if (this.processError) {
             try {
                 const result = await this.actor.addStylist(arg0);
@@ -227,18 +289,46 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async execute(arg0: string): Promise<Result> {
+    async assignRequest(arg0: bigint, arg1: bigint, arg2: bigint, arg3: string): Promise<ClientRequest> {
         if (this.processError) {
             try {
-                const result = await this.actor.execute(arg0);
-                return from_candid_Result_n7(this._uploadFile, this._downloadFile, result);
+                const result = await this.actor.assignRequest(arg0, arg1, arg2, arg3);
+                return from_candid_ClientRequest_n7(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.execute(arg0);
-            return from_candid_Result_n7(this._uploadFile, this._downloadFile, result);
+            const result = await this.actor.assignRequest(arg0, arg1, arg2, arg3);
+            return from_candid_ClientRequest_n7(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async createStylist(arg0: StylistInput): Promise<Stylist> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createStylist(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createStylist(arg0);
+            return result;
+        }
+    }
+    async exportBackup(): Promise<Backup> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.exportBackup();
+                return from_candid_Backup_n10(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.exportBackup();
+            return from_candid_Backup_n10(this._uploadFile, this._downloadFile, result);
         }
     }
     async getApiDoc(): Promise<string> {
@@ -259,17 +349,31 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.getCallerUserRole();
-                return from_candid_UserRole_n15(this._uploadFile, this._downloadFile, result);
+                return from_candid_UserRole_n18(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getCallerUserRole();
-            return from_candid_UserRole_n15(this._uploadFile, this._downloadFile, result);
+            return from_candid_UserRole_n18(this._uploadFile, this._downloadFile, result);
         }
     }
-    async getStylists(): Promise<Array<Stylist>> {
+    async getDashboard(): Promise<Dashboard> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getDashboard();
+                return from_candid_Dashboard_n12(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getDashboard();
+            return from_candid_Dashboard_n12(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getStylists(): Promise<Array<Stylist__1>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getStylists();
@@ -297,115 +401,231 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async schema(): Promise<string> {
+    async routeClient(arg0: RouteInput): Promise<RoutingResult> {
         if (this.processError) {
             try {
-                const result = await this.actor.schema();
+                const result = await this.actor.routeClient(arg0);
+                return from_candid_RoutingResult_n20(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.routeClient(arg0);
+            return from_candid_RoutingResult_n20(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async setRequestStatus(arg0: bigint, arg1: string, arg2: bigint, arg3: string): Promise<ClientRequest> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.setRequestStatus(arg0, arg1, arg2, arg3);
+                return from_candid_ClientRequest_n7(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.setRequestStatus(arg0, arg1, arg2, arg3);
+            return from_candid_ClientRequest_n7(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async setStylistActive(arg0: bigint, arg1: boolean, arg2: bigint): Promise<Stylist> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.setStylistActive(arg0, arg1, arg2);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.schema();
+            const result = await this.actor.setStylistActive(arg0, arg1, arg2);
             return result;
         }
     }
+    async updateStylist(arg0: bigint, arg1: StylistInput, arg2: bigint): Promise<Stylist> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateStylist(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateStylist(arg0, arg1, arg2);
+            return result;
+        }
+    }
+    async useBackup(arg0: bigint, arg1: bigint, arg2: string): Promise<RoutingResult> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.useBackup(arg0, arg1, arg2);
+                return from_candid_RoutingResult_n20(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.useBackup(arg0, arg1, arg2);
+            return from_candid_RoutingResult_n20(this._uploadFile, this._downloadFile, result);
+        }
+    }
 }
-function from_candid_Cell_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Cell): Cell {
-    return from_candid_record_n12(_uploadFile, _downloadFile, value);
+function from_candid_AuditEvent_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _AuditEvent): AuditEvent {
+    return from_candid_record_n16(_uploadFile, _downloadFile, value);
+}
+function from_candid_Backup_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Backup): Backup {
+    return from_candid_record_n11(_uploadFile, _downloadFile, value);
+}
+function from_candid_ClientRequest_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _ClientRequest): ClientRequest {
+    return from_candid_record_n8(_uploadFile, _downloadFile, value);
+}
+function from_candid_Dashboard_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Dashboard): Dashboard {
+    return from_candid_record_n13(_uploadFile, _downloadFile, value);
 }
 function from_candid_Error_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Error): Error_ {
     return from_candid_variant_n4(_uploadFile, _downloadFile, value);
 }
-function from_candid_Result__1_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Result__1): Result__1 {
+function from_candid_Result_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Result): Result {
     return from_candid_variant_n2(_uploadFile, _downloadFile, value);
 }
-function from_candid_Result_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Result): Result {
-    return from_candid_record_n8(_uploadFile, _downloadFile, value);
+function from_candid_RoutingResult_n20(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _RoutingResult): RoutingResult {
+    return from_candid_record_n21(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserRole_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
-    return from_candid_variant_n16(_uploadFile, _downloadFile, value);
+function from_candid_UserRole_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
+    return from_candid_variant_n19(_uploadFile, _downloadFile, value);
 }
-function from_candid_Value_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Value): Value {
-    return from_candid_variant_n14(_uploadFile, _downloadFile, value);
+function from_candid_opt_n22(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Stylist]): Stylist | null {
+    return value.length === 0 ? null : value[0];
 }
-function from_candid_record_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
-    value: _Value;
-    name: string;
+function from_candid_opt_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [bigint]): bigint | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_record_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    dashboard: _Dashboard;
+    exportedAt: bigint;
+    version: bigint;
 }): {
-    value: Value;
-    name: string;
+    dashboard: Dashboard;
+    exportedAt: bigint;
+    version: bigint;
 } {
     return {
-        value: from_candid_Value_n13(_uploadFile, _downloadFile, value.value),
-        name: value.name
+        dashboard: from_candid_Dashboard_n12(_uploadFile, _downloadFile, value.dashboard),
+        exportedAt: value.exportedAt,
+        version: value.version
+    };
+}
+function from_candid_record_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    audit: Array<_AuditEvent>;
+    stylists: Array<_Stylist>;
+    requests: Array<_ClientRequest>;
+}): {
+    audit: Array<AuditEvent>;
+    stylists: Array<Stylist>;
+    requests: Array<ClientRequest>;
+} {
+    return {
+        audit: from_candid_vec_n14(_uploadFile, _downloadFile, value.audit),
+        stylists: value.stylists,
+        requests: from_candid_vec_n17(_uploadFile, _downloadFile, value.requests)
+    };
+}
+function from_candid_record_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: bigint;
+    requestId: [] | [bigint];
+    stylistId: [] | [bigint];
+    kind: string;
+    createdAt: bigint;
+    detail: string;
+}): {
+    id: bigint;
+    requestId?: bigint;
+    stylistId?: bigint;
+    kind: string;
+    createdAt: bigint;
+    detail: string;
+} {
+    return {
+        id: value.id,
+        requestId: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.requestId)),
+        stylistId: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.stylistId)),
+        kind: value.kind,
+        createdAt: value.createdAt,
+        detail: value.detail
+    };
+}
+function from_candid_record_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    request: _ClientRequest;
+    backup: [] | [_Stylist];
+    recommended: [] | [_Stylist];
+}): {
+    request: ClientRequest;
+    backup?: Stylist;
+    recommended?: Stylist;
+} {
+    return {
+        request: from_candid_ClientRequest_n7(_uploadFile, _downloadFile, value.request),
+        backup: record_opt_to_undefined(from_candid_opt_n22(_uploadFile, _downloadFile, value.backup)),
+        recommended: record_opt_to_undefined(from_candid_opt_n22(_uploadFile, _downloadFile, value.recommended))
     };
 }
 function from_candid_record_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
-    hasMore: boolean;
-    rows: Array<Array<_Cell>>;
+    id: bigint;
+    service: string;
+    status: string;
+    assignedStylistId: [] | [bigint];
+    recommendedStylistId: [] | [bigint];
+    idempotencyKey: string;
+    timing: string;
+    backupStylistId: [] | [bigint];
+    clientName: string;
+    explanation: string;
+    createdAt: bigint;
+    specialtyMatters: boolean;
+    updatedAt: bigint;
+    notes: string;
+    requestedTime: string;
+    revision: bigint;
 }): {
-    hasMore: boolean;
-    rows: Array<Array<Cell>>;
+    id: bigint;
+    service: string;
+    status: string;
+    assignedStylistId?: bigint;
+    recommendedStylistId?: bigint;
+    idempotencyKey: string;
+    timing: string;
+    backupStylistId?: bigint;
+    clientName: string;
+    explanation: string;
+    createdAt: bigint;
+    specialtyMatters: boolean;
+    updatedAt: bigint;
+    notes: string;
+    requestedTime: string;
+    revision: bigint;
 } {
     return {
-        hasMore: value.hasMore,
-        rows: from_candid_vec_n9(_uploadFile, _downloadFile, value.rows)
+        id: value.id,
+        service: value.service,
+        status: value.status,
+        assignedStylistId: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.assignedStylistId)),
+        recommendedStylistId: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.recommendedStylistId)),
+        idempotencyKey: value.idempotencyKey,
+        timing: value.timing,
+        backupStylistId: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.backupStylistId)),
+        clientName: value.clientName,
+        explanation: value.explanation,
+        createdAt: value.createdAt,
+        specialtyMatters: value.specialtyMatters,
+        updatedAt: value.updatedAt,
+        notes: value.notes,
+        requestedTime: value.requestedTime,
+        revision: value.revision
     };
 }
-function from_candid_variant_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
-    int: bigint;
-} | {
-    nat: bigint;
-} | {
-    float: number;
-} | {
-    bool: boolean;
-} | {
-    null: null;
-} | {
-    text: string;
-}): {
-    __kind__: "int";
-    int: bigint;
-} | {
-    __kind__: "nat";
-    nat: bigint;
-} | {
-    __kind__: "float";
-    float: number;
-} | {
-    __kind__: "bool";
-    bool: boolean;
-} | {
-    __kind__: "null";
-    null: null;
-} | {
-    __kind__: "text";
-    text: string;
-} {
-    return "int" in value ? {
-        __kind__: "int",
-        int: value.int
-    } : "nat" in value ? {
-        __kind__: "nat",
-        nat: value.nat
-    } : "float" in value ? {
-        __kind__: "float",
-        float: value.float
-    } : "bool" in value ? {
-        __kind__: "bool",
-        bool: value.bool
-    } : "null" in value ? {
-        __kind__: "null",
-        null: value.null
-    } : "text" in value ? {
-        __kind__: "text",
-        text: value.text
-    } : value;
-}
-function from_candid_variant_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     admin: null;
 } | {
     user: null;
@@ -542,11 +762,11 @@ function from_candid_variant_n4(_uploadFile: (file: ExternalBlob) => Promise<Uin
         FrontendOriginMismatch: value.FrontendOriginMismatch
     } : value;
 }
-function from_candid_vec_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Cell>): Array<Cell> {
-    return value.map((x)=>from_candid_Cell_n11(_uploadFile, _downloadFile, x));
+function from_candid_vec_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_AuditEvent>): Array<AuditEvent> {
+    return value.map((x)=>from_candid_AuditEvent_n15(_uploadFile, _downloadFile, x));
 }
-function from_candid_vec_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<Array<_Cell>>): Array<Array<Cell>> {
-    return value.map((x)=>from_candid_vec_n10(_uploadFile, _downloadFile, x));
+function from_candid_vec_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_ClientRequest>): Array<ClientRequest> {
+    return value.map((x)=>from_candid_ClientRequest_n7(_uploadFile, _downloadFile, x));
 }
 function to_candid_UserRole_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): _UserRole {
     return to_candid_variant_n6(_uploadFile, _downloadFile, value);

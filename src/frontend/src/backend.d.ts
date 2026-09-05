@@ -7,22 +7,78 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
-export interface Result {
-    hasMore: boolean;
-    rows: Array<Array<Cell>>;
+export interface AuditEvent {
+    id: bigint;
+    requestId?: bigint;
+    stylistId?: bigint;
+    kind: string;
+    createdAt: bigint;
+    detail: string;
 }
-export interface Cell {
-    value: Value;
-    name: string;
-}
-export type Result__1 = {
+export type Result = {
     __kind__: "ok";
     ok: null;
 } | {
     __kind__: "err";
     err: Error_;
 };
+export interface ClientRequest {
+    id: bigint;
+    service: string;
+    status: string;
+    assignedStylistId?: bigint;
+    recommendedStylistId?: bigint;
+    idempotencyKey: string;
+    timing: string;
+    backupStylistId?: bigint;
+    clientName: string;
+    explanation: string;
+    createdAt: bigint;
+    specialtyMatters: boolean;
+    updatedAt: bigint;
+    notes: string;
+    requestedTime: string;
+    revision: bigint;
+}
+export interface Backup {
+    dashboard: Dashboard;
+    exportedAt: bigint;
+    version: bigint;
+}
+export interface StylistInput {
+    name: string;
+    acceptsNewClients: boolean;
+    availabilityExpiresAt: bigint;
+    availabilityNote: string;
+    phone: string;
+    services: Array<ServicePreference>;
+    availabilityStatus: string;
+}
+export interface Dashboard {
+    audit: Array<AuditEvent>;
+    stylists: Array<Stylist>;
+    requests: Array<ClientRequest>;
+}
 export interface Stylist {
+    id: bigint;
+    active: boolean;
+    assignments: bigint;
+    name: string;
+    createdAt: bigint;
+    acceptsNewClients: boolean;
+    availabilityExpiresAt: bigint;
+    updatedAt: bigint;
+    eligibleOpportunities: bigint;
+    noResponses: bigint;
+    lastAssignedAt: bigint;
+    availabilityNote: string;
+    phone: string;
+    declines: bigint;
+    revision: bigint;
+    services: Array<ServicePreference>;
+    availabilityStatus: string;
+}
+export interface Stylist__1 {
     name: string;
     specialty: string;
     availability: string;
@@ -71,37 +127,43 @@ export type Error_ = {
         expected: Array<string>;
     };
 };
-export type Value = {
-    __kind__: "int";
-    int: bigint;
-} | {
-    __kind__: "nat";
-    nat: bigint;
-} | {
-    __kind__: "float";
-    float: number;
-} | {
-    __kind__: "bool";
-    bool: boolean;
-} | {
-    __kind__: "null";
-    null: null;
-} | {
-    __kind__: "text";
-    text: string;
-};
+export interface RouteInput {
+    service: string;
+    idempotencyKey: string;
+    timing: string;
+    clientName: string;
+    specialtyMatters: boolean;
+    notes: string;
+    requestedTime: string;
+}
+export interface RoutingResult {
+    request: ClientRequest;
+    backup?: Stylist;
+    recommended?: Stylist;
+}
+export interface ServicePreference {
+    name: string;
+    level: string;
+}
 export enum UserRole {
     admin = "admin",
     user = "user",
     guest = "guest"
 }
 export interface backendInterface {
-    addStylist(stylist: Stylist): Promise<void>;
+    addStylist(stylist: Stylist__1): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
-    execute(qJson: string): Promise<Result>;
+    assignRequest(requestId: bigint, stylistId: bigint, expectedRevision: bigint, note: string): Promise<ClientRequest>;
+    createStylist(input: StylistInput): Promise<Stylist>;
+    exportBackup(): Promise<Backup>;
     getApiDoc(): Promise<string>;
     getCallerUserRole(): Promise<UserRole>;
-    getStylists(): Promise<Array<Stylist>>;
+    getDashboard(): Promise<Dashboard>;
+    getStylists(): Promise<Array<Stylist__1>>;
     isCallerAdmin(): Promise<boolean>;
-    schema(): Promise<string>;
+    routeClient(input: RouteInput): Promise<RoutingResult>;
+    setRequestStatus(requestId: bigint, status: string, expectedRevision: bigint, reason: string): Promise<ClientRequest>;
+    setStylistActive(id: bigint, active: boolean, expectedRevision: bigint): Promise<Stylist>;
+    updateStylist(id: bigint, input: StylistInput, expectedRevision: bigint): Promise<Stylist>;
+    useBackup(requestId: bigint, expectedRevision: bigint, reason: string): Promise<RoutingResult>;
 }

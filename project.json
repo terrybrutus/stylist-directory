@@ -1,15 +1,20 @@
 {
-  "overview": "A minimal stylist directory where you can add a stylist with name, specialty, and availability, and see the list.",
+  "overview": "A private, mobile-first new-client routing workspace that balances availability, service fit, and transparent fairness.",
   "features": [
-    "Add a stylist with name, specialty, and availability",
-    "See a list of all added stylists",
-    "Placeholder filter options for specialty, availability, and fairness"
+    "Route new clients to an explainable primary recommendation and backup",
+    "Track services stylists love, perform, and do not perform",
+    "Use expiring availability and new-client opt-in controls",
+    "Balance comparable opportunities through a transparent fair rotation",
+    "Track confirmations, outcomes, overrides, and an audit history",
+    "Export a human-readable recovery backup"
   ],
   "category": "productivity",
   "tags": [
     "stylist",
-    "directory",
-    "productivity"
+    "salon",
+    "booking",
+    "fairness",
+    "operations"
   ],
   "last_updated": "2026-09-05T18:18:55.039Z"
 }

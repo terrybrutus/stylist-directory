@@ -29,8 +29,8 @@ export const Error = IDL.Variant({
     'expected' : IDL.Vec(IDL.Text),
   }),
 });
-export const Result__1 = IDL.Variant({ 'ok' : IDL.Null, 'err' : Error });
-export const Stylist = IDL.Record({
+export const Result = IDL.Variant({ 'ok' : IDL.Null, 'err' : Error });
+export const Stylist__1 = IDL.Record({
   'name' : IDL.Text,
   'specialty' : IDL.Text,
   'availability' : IDL.Text,
@@ -40,32 +40,116 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
-export const Value = IDL.Variant({
-  'int' : IDL.Int,
-  'nat' : IDL.Nat,
-  'float' : IDL.Float64,
-  'bool' : IDL.Bool,
-  'null' : IDL.Null,
-  'text' : IDL.Text,
+export const ClientRequest = IDL.Record({
+  'id' : IDL.Nat,
+  'service' : IDL.Text,
+  'status' : IDL.Text,
+  'assignedStylistId' : IDL.Opt(IDL.Nat),
+  'recommendedStylistId' : IDL.Opt(IDL.Nat),
+  'idempotencyKey' : IDL.Text,
+  'timing' : IDL.Text,
+  'backupStylistId' : IDL.Opt(IDL.Nat),
+  'clientName' : IDL.Text,
+  'explanation' : IDL.Text,
+  'createdAt' : IDL.Nat,
+  'specialtyMatters' : IDL.Bool,
+  'updatedAt' : IDL.Nat,
+  'notes' : IDL.Text,
+  'requestedTime' : IDL.Text,
+  'revision' : IDL.Nat,
 });
-export const Cell = IDL.Record({ 'value' : Value, 'name' : IDL.Text });
-export const Result = IDL.Record({
-  'hasMore' : IDL.Bool,
-  'rows' : IDL.Vec(IDL.Vec(Cell)),
+export const ServicePreference = IDL.Record({
+  'name' : IDL.Text,
+  'level' : IDL.Text,
+});
+export const StylistInput = IDL.Record({
+  'name' : IDL.Text,
+  'acceptsNewClients' : IDL.Bool,
+  'availabilityExpiresAt' : IDL.Nat,
+  'availabilityNote' : IDL.Text,
+  'phone' : IDL.Text,
+  'services' : IDL.Vec(ServicePreference),
+  'availabilityStatus' : IDL.Text,
+});
+export const Stylist = IDL.Record({
+  'id' : IDL.Nat,
+  'active' : IDL.Bool,
+  'assignments' : IDL.Nat,
+  'name' : IDL.Text,
+  'createdAt' : IDL.Nat,
+  'acceptsNewClients' : IDL.Bool,
+  'availabilityExpiresAt' : IDL.Nat,
+  'updatedAt' : IDL.Nat,
+  'eligibleOpportunities' : IDL.Nat,
+  'noResponses' : IDL.Nat,
+  'lastAssignedAt' : IDL.Nat,
+  'availabilityNote' : IDL.Text,
+  'phone' : IDL.Text,
+  'declines' : IDL.Nat,
+  'revision' : IDL.Nat,
+  'services' : IDL.Vec(ServicePreference),
+  'availabilityStatus' : IDL.Text,
+});
+export const AuditEvent = IDL.Record({
+  'id' : IDL.Nat,
+  'requestId' : IDL.Opt(IDL.Nat),
+  'stylistId' : IDL.Opt(IDL.Nat),
+  'kind' : IDL.Text,
+  'createdAt' : IDL.Nat,
+  'detail' : IDL.Text,
+});
+export const Dashboard = IDL.Record({
+  'audit' : IDL.Vec(AuditEvent),
+  'stylists' : IDL.Vec(Stylist),
+  'requests' : IDL.Vec(ClientRequest),
+});
+export const Backup = IDL.Record({
+  'dashboard' : Dashboard,
+  'exportedAt' : IDL.Nat,
+  'version' : IDL.Nat,
+});
+export const RouteInput = IDL.Record({
+  'service' : IDL.Text,
+  'idempotencyKey' : IDL.Text,
+  'timing' : IDL.Text,
+  'clientName' : IDL.Text,
+  'specialtyMatters' : IDL.Bool,
+  'notes' : IDL.Text,
+  'requestedTime' : IDL.Text,
+});
+export const RoutingResult = IDL.Record({
+  'request' : ClientRequest,
+  'backup' : IDL.Opt(Stylist),
+  'recommended' : IDL.Opt(Stylist),
 });
 
 export const idlService = IDL.Service({
   '_initialize_access_control' : IDL.Func([], [], []),
-  '_internet_identity_sign_in_finish' : IDL.Func([], [Result__1], []),
+  '_internet_identity_sign_in_finish' : IDL.Func([], [Result], []),
   '_internet_identity_sign_in_start' : IDL.Func([], [IDL.Vec(IDL.Nat8)], []),
-  'addStylist' : IDL.Func([Stylist], [], []),
+  'addStylist' : IDL.Func([Stylist__1], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-  'execute' : IDL.Func([IDL.Text], [Result], ['query']),
+  'assignRequest' : IDL.Func(
+      [IDL.Nat, IDL.Nat, IDL.Nat, IDL.Text],
+      [ClientRequest],
+      [],
+    ),
+  'createStylist' : IDL.Func([StylistInput], [Stylist], []),
+  'exportBackup' : IDL.Func([], [Backup], ['query']),
   'getApiDoc' : IDL.Func([], [IDL.Text], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-  'getStylists' : IDL.Func([], [IDL.Vec(Stylist)], ['query']),
+  'getDashboard' : IDL.Func([], [Dashboard], ['query']),
+  'getStylists' : IDL.Func([], [IDL.Vec(Stylist__1)], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
-  'schema' : IDL.Func([], [IDL.Text], ['query']),
+  'routeClient' : IDL.Func([RouteInput], [RoutingResult], []),
+  'setRequestStatus' : IDL.Func(
+      [IDL.Nat, IDL.Text, IDL.Nat, IDL.Text],
+      [ClientRequest],
+      [],
+    ),
+  'setStylistActive' : IDL.Func([IDL.Nat, IDL.Bool, IDL.Nat], [Stylist], []),
+  'updateStylist' : IDL.Func([IDL.Nat, StylistInput, IDL.Nat], [Stylist], []),
+  'useBackup' : IDL.Func([IDL.Nat, IDL.Nat, IDL.Text], [RoutingResult], []),
 });
 
 export const idlInitArgs = [];
@@ -92,8 +176,8 @@ export const idlFactory = ({ IDL }) => {
       'expected' : IDL.Vec(IDL.Text),
     }),
   });
-  const Result__1 = IDL.Variant({ 'ok' : IDL.Null, 'err' : Error });
-  const Stylist = IDL.Record({
+  const Result = IDL.Variant({ 'ok' : IDL.Null, 'err' : Error });
+  const Stylist__1 = IDL.Record({
     'name' : IDL.Text,
     'specialty' : IDL.Text,
     'availability' : IDL.Text,
@@ -103,32 +187,116 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
-  const Value = IDL.Variant({
-    'int' : IDL.Int,
-    'nat' : IDL.Nat,
-    'float' : IDL.Float64,
-    'bool' : IDL.Bool,
-    'null' : IDL.Null,
-    'text' : IDL.Text,
+  const ClientRequest = IDL.Record({
+    'id' : IDL.Nat,
+    'service' : IDL.Text,
+    'status' : IDL.Text,
+    'assignedStylistId' : IDL.Opt(IDL.Nat),
+    'recommendedStylistId' : IDL.Opt(IDL.Nat),
+    'idempotencyKey' : IDL.Text,
+    'timing' : IDL.Text,
+    'backupStylistId' : IDL.Opt(IDL.Nat),
+    'clientName' : IDL.Text,
+    'explanation' : IDL.Text,
+    'createdAt' : IDL.Nat,
+    'specialtyMatters' : IDL.Bool,
+    'updatedAt' : IDL.Nat,
+    'notes' : IDL.Text,
+    'requestedTime' : IDL.Text,
+    'revision' : IDL.Nat,
   });
-  const Cell = IDL.Record({ 'value' : Value, 'name' : IDL.Text });
-  const Result = IDL.Record({
-    'hasMore' : IDL.Bool,
-    'rows' : IDL.Vec(IDL.Vec(Cell)),
+  const ServicePreference = IDL.Record({
+    'name' : IDL.Text,
+    'level' : IDL.Text,
+  });
+  const StylistInput = IDL.Record({
+    'name' : IDL.Text,
+    'acceptsNewClients' : IDL.Bool,
+    'availabilityExpiresAt' : IDL.Nat,
+    'availabilityNote' : IDL.Text,
+    'phone' : IDL.Text,
+    'services' : IDL.Vec(ServicePreference),
+    'availabilityStatus' : IDL.Text,
+  });
+  const Stylist = IDL.Record({
+    'id' : IDL.Nat,
+    'active' : IDL.Bool,
+    'assignments' : IDL.Nat,
+    'name' : IDL.Text,
+    'createdAt' : IDL.Nat,
+    'acceptsNewClients' : IDL.Bool,
+    'availabilityExpiresAt' : IDL.Nat,
+    'updatedAt' : IDL.Nat,
+    'eligibleOpportunities' : IDL.Nat,
+    'noResponses' : IDL.Nat,
+    'lastAssignedAt' : IDL.Nat,
+    'availabilityNote' : IDL.Text,
+    'phone' : IDL.Text,
+    'declines' : IDL.Nat,
+    'revision' : IDL.Nat,
+    'services' : IDL.Vec(ServicePreference),
+    'availabilityStatus' : IDL.Text,
+  });
+  const AuditEvent = IDL.Record({
+    'id' : IDL.Nat,
+    'requestId' : IDL.Opt(IDL.Nat),
+    'stylistId' : IDL.Opt(IDL.Nat),
+    'kind' : IDL.Text,
+    'createdAt' : IDL.Nat,
+    'detail' : IDL.Text,
+  });
+  const Dashboard = IDL.Record({
+    'audit' : IDL.Vec(AuditEvent),
+    'stylists' : IDL.Vec(Stylist),
+    'requests' : IDL.Vec(ClientRequest),
+  });
+  const Backup = IDL.Record({
+    'dashboard' : Dashboard,
+    'exportedAt' : IDL.Nat,
+    'version' : IDL.Nat,
+  });
+  const RouteInput = IDL.Record({
+    'service' : IDL.Text,
+    'idempotencyKey' : IDL.Text,
+    'timing' : IDL.Text,
+    'clientName' : IDL.Text,
+    'specialtyMatters' : IDL.Bool,
+    'notes' : IDL.Text,
+    'requestedTime' : IDL.Text,
+  });
+  const RoutingResult = IDL.Record({
+    'request' : ClientRequest,
+    'backup' : IDL.Opt(Stylist),
+    'recommended' : IDL.Opt(Stylist),
   });
   
   return IDL.Service({
     '_initialize_access_control' : IDL.Func([], [], []),
-    '_internet_identity_sign_in_finish' : IDL.Func([], [Result__1], []),
+    '_internet_identity_sign_in_finish' : IDL.Func([], [Result], []),
     '_internet_identity_sign_in_start' : IDL.Func([], [IDL.Vec(IDL.Nat8)], []),
-    'addStylist' : IDL.Func([Stylist], [], []),
+    'addStylist' : IDL.Func([Stylist__1], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-    'execute' : IDL.Func([IDL.Text], [Result], ['query']),
+    'assignRequest' : IDL.Func(
+        [IDL.Nat, IDL.Nat, IDL.Nat, IDL.Text],
+        [ClientRequest],
+        [],
+      ),
+    'createStylist' : IDL.Func([StylistInput], [Stylist], []),
+    'exportBackup' : IDL.Func([], [Backup], ['query']),
     'getApiDoc' : IDL.Func([], [IDL.Text], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-    'getStylists' : IDL.Func([], [IDL.Vec(Stylist)], ['query']),
+    'getDashboard' : IDL.Func([], [Dashboard], ['query']),
+    'getStylists' : IDL.Func([], [IDL.Vec(Stylist__1)], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
-    'schema' : IDL.Func([], [IDL.Text], ['query']),
+    'routeClient' : IDL.Func([RouteInput], [RoutingResult], []),
+    'setRequestStatus' : IDL.Func(
+        [IDL.Nat, IDL.Text, IDL.Nat, IDL.Text],
+        [ClientRequest],
+        [],
+      ),
+    'setStylistActive' : IDL.Func([IDL.Nat, IDL.Bool, IDL.Nat], [Stylist], []),
+    'updateStylist' : IDL.Func([IDL.Nat, StylistInput, IDL.Nat], [Stylist], []),
+    'useBackup' : IDL.Func([IDL.Nat, IDL.Nat, IDL.Text], [RoutingResult], []),
   });
 };
 

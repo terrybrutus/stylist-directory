@@ -4703,14 +4703,14 @@ function ct(t) {
 function T(t, e) {
   E(t, e.length), r$1 > a.length - e.length && k(r$1 + e.length), a.set(e, r$1), r$1 += e.length;
 }
-function X(t, e) {
+function X$1(t, e) {
   E(t, e);
 }
 function it(t) {
-  X(c.UnsignedInteger, t);
+  X$1(c.UnsignedInteger, t);
 }
 function st(t) {
-  X(
+  X$1(
     c.NegativeInteger,
     typeof t == "bigint" ? -1n - t : -1 - t
   );
@@ -33219,6 +33219,9 @@ function composeRefs(...refs) {
     }
   };
 }
+function useComposedRefs(...refs) {
+  return reactExports.useCallback(composeRefs(...refs), refs);
+}
 var REACT_LAZY_TYPE = Symbol.for("react.lazy");
 var use = React$2[" use ".trim().toString()];
 function isPromiseLike(value) {
@@ -33228,15 +33231,15 @@ function isLazyComponent(element) {
   return element != null && typeof element === "object" && "$$typeof" in element && element.$$typeof === REACT_LAZY_TYPE && "_payload" in element && isPromiseLike(element._payload);
 }
 // @__NO_SIDE_EFFECTS__
-function createSlot(ownerName) {
-  const SlotClone = /* @__PURE__ */ createSlotClone(ownerName);
+function createSlot$1(ownerName) {
+  const SlotClone = /* @__PURE__ */ createSlotClone$1(ownerName);
   const Slot2 = reactExports.forwardRef((props, forwardedRef) => {
     let { children, ...slotProps } = props;
     if (isLazyComponent(children) && typeof use === "function") {
       children = use(children._payload);
     }
     const childrenArray = reactExports.Children.toArray(children);
-    const slottable = childrenArray.find(isSlottable);
+    const slottable = childrenArray.find(isSlottable$1);
     if (slottable) {
       const newElement = slottable.props.children;
       const newChildren = childrenArray.map((child) => {
@@ -33254,17 +33257,17 @@ function createSlot(ownerName) {
   Slot2.displayName = `${ownerName}.Slot`;
   return Slot2;
 }
-var Slot = /* @__PURE__ */ createSlot("Slot");
+var Slot = /* @__PURE__ */ createSlot$1("Slot");
 // @__NO_SIDE_EFFECTS__
-function createSlotClone(ownerName) {
+function createSlotClone$1(ownerName) {
   const SlotClone = reactExports.forwardRef((props, forwardedRef) => {
     let { children, ...slotProps } = props;
     if (isLazyComponent(children) && typeof use === "function") {
       children = use(children._payload);
     }
     if (reactExports.isValidElement(children)) {
-      const childrenRef = getElementRef(children);
-      const props2 = mergeProps(slotProps, children.props);
+      const childrenRef = getElementRef$1(children);
+      const props2 = mergeProps$1(slotProps, children.props);
       if (children.type !== reactExports.Fragment) {
         props2.ref = forwardedRef ? composeRefs(forwardedRef, childrenRef) : childrenRef;
       }
@@ -33275,11 +33278,11 @@ function createSlotClone(ownerName) {
   SlotClone.displayName = `${ownerName}.SlotClone`;
   return SlotClone;
 }
-var SLOTTABLE_IDENTIFIER = Symbol("radix.slottable");
-function isSlottable(child) {
-  return reactExports.isValidElement(child) && typeof child.type === "function" && "__radixId" in child.type && child.type.__radixId === SLOTTABLE_IDENTIFIER;
+var SLOTTABLE_IDENTIFIER$1 = Symbol("radix.slottable");
+function isSlottable$1(child) {
+  return reactExports.isValidElement(child) && typeof child.type === "function" && "__radixId" in child.type && child.type.__radixId === SLOTTABLE_IDENTIFIER$1;
 }
-function mergeProps(slotProps, childProps) {
+function mergeProps$1(slotProps, childProps) {
   const overrideProps = { ...childProps };
   for (const propName in childProps) {
     const slotPropValue = slotProps[propName];
@@ -33303,7 +33306,7 @@ function mergeProps(slotProps, childProps) {
   }
   return { ...slotProps, ...overrideProps };
 }
-function getElementRef(element) {
+function getElementRef$1(element) {
   var _a2, _b2;
   let getter = (_a2 = Object.getOwnPropertyDescriptor(element.props, "ref")) == null ? void 0 : _a2.get;
   let mayWarn = getter && "isReactWarning" in getter && getter.isReactWarning;
@@ -35874,29 +35877,6 @@ function Button({
     }
   );
 }
-function Card({ className, ...props }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    "div",
-    {
-      "data-slot": "card",
-      className: cn(
-        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
-        className
-      ),
-      ...props
-    }
-  );
-}
-function CardContent({ className, ...props }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    "div",
-    {
-      "data-slot": "card-content",
-      className: cn("px-6", className),
-      ...props
-    }
-  );
-}
 function Input({ className, type, ...props }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsx(
     "input",
@@ -35912,6 +35892,335 @@ function Input({ className, type, ...props }) {
       ...props
     }
   );
+}
+var NODES$1 = [
+  "a",
+  "button",
+  "div",
+  "form",
+  "h2",
+  "h3",
+  "img",
+  "input",
+  "label",
+  "li",
+  "nav",
+  "ol",
+  "p",
+  "select",
+  "span",
+  "svg",
+  "ul"
+];
+var Primitive$1 = NODES$1.reduce((primitive, node) => {
+  const Slot2 = /* @__PURE__ */ createSlot$1(`Primitive.${node}`);
+  const Node = reactExports.forwardRef((props, forwardedRef) => {
+    const { asChild, ...primitiveProps } = props;
+    const Comp = asChild ? Slot2 : node;
+    if (typeof window !== "undefined") {
+      window[Symbol.for("radix-ui")] = true;
+    }
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(Comp, { ...primitiveProps, ref: forwardedRef });
+  });
+  Node.displayName = `Primitive.${node}`;
+  return { ...primitive, [node]: Node };
+}, {});
+var NAME = "Label";
+var Label$1 = reactExports.forwardRef((props, forwardedRef) => {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    Primitive$1.label,
+    {
+      ...props,
+      ref: forwardedRef,
+      onMouseDown: (event) => {
+        var _a2;
+        const target = event.target;
+        if (target.closest("button, input, select, textarea")) return;
+        (_a2 = props.onMouseDown) == null ? void 0 : _a2.call(props, event);
+        if (!event.defaultPrevented && event.detail > 1) event.preventDefault();
+      }
+    }
+  );
+});
+Label$1.displayName = NAME;
+var Root$1 = Label$1;
+function Label({
+  className,
+  ...props
+}) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    Root$1,
+    {
+      "data-slot": "label",
+      className: cn(
+        "flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
+        className
+      ),
+      ...props
+    }
+  );
+}
+function composeEventHandlers(originalEventHandler, ourEventHandler, { checkForDefaultPrevented = true } = {}) {
+  return function handleEvent(event) {
+    originalEventHandler == null ? void 0 : originalEventHandler(event);
+    if (checkForDefaultPrevented === false || !event.defaultPrevented) {
+      return ourEventHandler == null ? void 0 : ourEventHandler(event);
+    }
+  };
+}
+function createContextScope(scopeName, createContextScopeDeps = []) {
+  let defaultContexts = [];
+  function createContext3(rootComponentName, defaultContext) {
+    const BaseContext = reactExports.createContext(defaultContext);
+    const index2 = defaultContexts.length;
+    defaultContexts = [...defaultContexts, defaultContext];
+    const Provider = (props) => {
+      var _a2;
+      const { scope, children, ...context } = props;
+      const Context = ((_a2 = scope == null ? void 0 : scope[scopeName]) == null ? void 0 : _a2[index2]) || BaseContext;
+      const value = reactExports.useMemo(() => context, Object.values(context));
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(Context.Provider, { value, children });
+    };
+    Provider.displayName = rootComponentName + "Provider";
+    function useContext2(consumerName, scope) {
+      var _a2;
+      const Context = ((_a2 = scope == null ? void 0 : scope[scopeName]) == null ? void 0 : _a2[index2]) || BaseContext;
+      const context = reactExports.useContext(Context);
+      if (context) return context;
+      if (defaultContext !== void 0) return defaultContext;
+      throw new Error(`\`${consumerName}\` must be used within \`${rootComponentName}\``);
+    }
+    return [Provider, useContext2];
+  }
+  const createScope = () => {
+    const scopeContexts = defaultContexts.map((defaultContext) => {
+      return reactExports.createContext(defaultContext);
+    });
+    return function useScope(scope) {
+      const contexts = (scope == null ? void 0 : scope[scopeName]) || scopeContexts;
+      return reactExports.useMemo(
+        () => ({ [`__scope${scopeName}`]: { ...scope, [scopeName]: contexts } }),
+        [scope, contexts]
+      );
+    };
+  };
+  createScope.scopeName = scopeName;
+  return [createContext3, composeContextScopes(createScope, ...createContextScopeDeps)];
+}
+function composeContextScopes(...scopes) {
+  const baseScope = scopes[0];
+  if (scopes.length === 1) return baseScope;
+  const createScope = () => {
+    const scopeHooks = scopes.map((createScope2) => ({
+      useScope: createScope2(),
+      scopeName: createScope2.scopeName
+    }));
+    return function useComposedScopes(overrideScopes) {
+      const nextScopes = scopeHooks.reduce((nextScopes2, { useScope, scopeName }) => {
+        const scopeProps = useScope(overrideScopes);
+        const currentScope = scopeProps[`__scope${scopeName}`];
+        return { ...nextScopes2, ...currentScope };
+      }, {});
+      return reactExports.useMemo(() => ({ [`__scope${baseScope.scopeName}`]: nextScopes }), [nextScopes]);
+    };
+  };
+  createScope.scopeName = baseScope.scopeName;
+  return createScope;
+}
+var useLayoutEffect2 = (globalThis == null ? void 0 : globalThis.document) ? reactExports.useLayoutEffect : () => {
+};
+var useInsertionEffect = React$2[" useInsertionEffect ".trim().toString()] || useLayoutEffect2;
+function useControllableState({
+  prop,
+  defaultProp,
+  onChange = () => {
+  },
+  caller
+}) {
+  const [uncontrolledProp, setUncontrolledProp, onChangeRef] = useUncontrolledState({
+    defaultProp,
+    onChange
+  });
+  const isControlled = prop !== void 0;
+  const value = isControlled ? prop : uncontrolledProp;
+  {
+    const isControlledRef = reactExports.useRef(prop !== void 0);
+    reactExports.useEffect(() => {
+      const wasControlled = isControlledRef.current;
+      if (wasControlled !== isControlled) {
+        const from = wasControlled ? "controlled" : "uncontrolled";
+        const to = isControlled ? "controlled" : "uncontrolled";
+        console.warn(
+          `${caller} is changing from ${from} to ${to}. Components should not switch from controlled to uncontrolled (or vice versa). Decide between using a controlled or uncontrolled value for the lifetime of the component.`
+        );
+      }
+      isControlledRef.current = isControlled;
+    }, [isControlled, caller]);
+  }
+  const setValue = reactExports.useCallback(
+    (nextValue) => {
+      var _a2;
+      if (isControlled) {
+        const value2 = isFunction(nextValue) ? nextValue(prop) : nextValue;
+        if (value2 !== prop) {
+          (_a2 = onChangeRef.current) == null ? void 0 : _a2.call(onChangeRef, value2);
+        }
+      } else {
+        setUncontrolledProp(nextValue);
+      }
+    },
+    [isControlled, prop, setUncontrolledProp, onChangeRef]
+  );
+  return [value, setValue];
+}
+function useUncontrolledState({
+  defaultProp,
+  onChange
+}) {
+  const [value, setValue] = reactExports.useState(defaultProp);
+  const prevValueRef = reactExports.useRef(value);
+  const onChangeRef = reactExports.useRef(onChange);
+  useInsertionEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+  reactExports.useEffect(() => {
+    var _a2;
+    if (prevValueRef.current !== value) {
+      (_a2 = onChangeRef.current) == null ? void 0 : _a2.call(onChangeRef, value);
+      prevValueRef.current = value;
+    }
+  }, [value, prevValueRef]);
+  return [value, setValue, onChangeRef];
+}
+function isFunction(value) {
+  return typeof value === "function";
+}
+function usePrevious(value) {
+  const ref = reactExports.useRef({ value, previous: value });
+  return reactExports.useMemo(() => {
+    if (ref.current.value !== value) {
+      ref.current.previous = ref.current.value;
+      ref.current.value = value;
+    }
+    return ref.current.previous;
+  }, [value]);
+}
+function useSize(element) {
+  const [size, setSize] = reactExports.useState(void 0);
+  useLayoutEffect2(() => {
+    if (element) {
+      setSize({ width: element.offsetWidth, height: element.offsetHeight });
+      const resizeObserver = new ResizeObserver((entries) => {
+        if (!Array.isArray(entries)) {
+          return;
+        }
+        if (!entries.length) {
+          return;
+        }
+        const entry = entries[0];
+        let width;
+        let height;
+        if ("borderBoxSize" in entry) {
+          const borderSizeEntry = entry["borderBoxSize"];
+          const borderSize = Array.isArray(borderSizeEntry) ? borderSizeEntry[0] : borderSizeEntry;
+          width = borderSize["inlineSize"];
+          height = borderSize["blockSize"];
+        } else {
+          width = element.offsetWidth;
+          height = element.offsetHeight;
+        }
+        setSize({ width, height });
+      });
+      resizeObserver.observe(element, { box: "border-box" });
+      return () => resizeObserver.unobserve(element);
+    } else {
+      setSize(void 0);
+    }
+  }, [element]);
+  return size;
+}
+// @__NO_SIDE_EFFECTS__
+function createSlot(ownerName) {
+  const SlotClone = /* @__PURE__ */ createSlotClone(ownerName);
+  const Slot2 = reactExports.forwardRef((props, forwardedRef) => {
+    const { children, ...slotProps } = props;
+    const childrenArray = reactExports.Children.toArray(children);
+    const slottable = childrenArray.find(isSlottable);
+    if (slottable) {
+      const newElement = slottable.props.children;
+      const newChildren = childrenArray.map((child) => {
+        if (child === slottable) {
+          if (reactExports.Children.count(newElement) > 1) return reactExports.Children.only(null);
+          return reactExports.isValidElement(newElement) ? newElement.props.children : null;
+        } else {
+          return child;
+        }
+      });
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(SlotClone, { ...slotProps, ref: forwardedRef, children: reactExports.isValidElement(newElement) ? reactExports.cloneElement(newElement, void 0, newChildren) : null });
+    }
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(SlotClone, { ...slotProps, ref: forwardedRef, children });
+  });
+  Slot2.displayName = `${ownerName}.Slot`;
+  return Slot2;
+}
+// @__NO_SIDE_EFFECTS__
+function createSlotClone(ownerName) {
+  const SlotClone = reactExports.forwardRef((props, forwardedRef) => {
+    const { children, ...slotProps } = props;
+    if (reactExports.isValidElement(children)) {
+      const childrenRef = getElementRef(children);
+      const props2 = mergeProps(slotProps, children.props);
+      if (children.type !== reactExports.Fragment) {
+        props2.ref = forwardedRef ? composeRefs(forwardedRef, childrenRef) : childrenRef;
+      }
+      return reactExports.cloneElement(children, props2);
+    }
+    return reactExports.Children.count(children) > 1 ? reactExports.Children.only(null) : null;
+  });
+  SlotClone.displayName = `${ownerName}.SlotClone`;
+  return SlotClone;
+}
+var SLOTTABLE_IDENTIFIER = Symbol("radix.slottable");
+function isSlottable(child) {
+  return reactExports.isValidElement(child) && typeof child.type === "function" && "__radixId" in child.type && child.type.__radixId === SLOTTABLE_IDENTIFIER;
+}
+function mergeProps(slotProps, childProps) {
+  const overrideProps = { ...childProps };
+  for (const propName in childProps) {
+    const slotPropValue = slotProps[propName];
+    const childPropValue = childProps[propName];
+    const isHandler = /^on[A-Z]/.test(propName);
+    if (isHandler) {
+      if (slotPropValue && childPropValue) {
+        overrideProps[propName] = (...args) => {
+          const result = childPropValue(...args);
+          slotPropValue(...args);
+          return result;
+        };
+      } else if (slotPropValue) {
+        overrideProps[propName] = slotPropValue;
+      }
+    } else if (propName === "style") {
+      overrideProps[propName] = { ...slotPropValue, ...childPropValue };
+    } else if (propName === "className") {
+      overrideProps[propName] = [slotPropValue, childPropValue].filter(Boolean).join(" ");
+    }
+  }
+  return { ...slotProps, ...overrideProps };
+}
+function getElementRef(element) {
+  var _a2, _b2;
+  let getter = (_a2 = Object.getOwnPropertyDescriptor(element.props, "ref")) == null ? void 0 : _a2.get;
+  let mayWarn = getter && "isReactWarning" in getter && getter.isReactWarning;
+  if (mayWarn) {
+    return element.ref;
+  }
+  getter = (_b2 = Object.getOwnPropertyDescriptor(element, "ref")) == null ? void 0 : _b2.get;
+  mayWarn = getter && "isReactWarning" in getter && getter.isReactWarning;
+  if (mayWarn) {
+    return element.props.ref;
+  }
+  return element.props.ref || element.ref;
 }
 var NODES = [
   "a",
@@ -35945,35 +36254,178 @@ var Primitive = NODES.reduce((primitive, node) => {
   Node.displayName = `Primitive.${node}`;
   return { ...primitive, [node]: Node };
 }, {});
-var NAME = "Label";
-var Label$1 = reactExports.forwardRef((props, forwardedRef) => {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    Primitive.label,
-    {
-      ...props,
-      ref: forwardedRef,
-      onMouseDown: (event) => {
-        var _a2;
-        const target = event.target;
-        if (target.closest("button, input, select, textarea")) return;
-        (_a2 = props.onMouseDown) == null ? void 0 : _a2.call(props, event);
-        if (!event.defaultPrevented && event.detail > 1) event.preventDefault();
+var SWITCH_NAME = "Switch";
+var [createSwitchContext] = createContextScope(SWITCH_NAME);
+var [SwitchProvider, useSwitchContext] = createSwitchContext(SWITCH_NAME);
+var Switch$1 = reactExports.forwardRef(
+  (props, forwardedRef) => {
+    const {
+      __scopeSwitch,
+      name,
+      checked: checkedProp,
+      defaultChecked,
+      required,
+      disabled,
+      value = "on",
+      onCheckedChange,
+      form,
+      ...switchProps
+    } = props;
+    const [button, setButton] = reactExports.useState(null);
+    const composedRefs = useComposedRefs(forwardedRef, (node) => setButton(node));
+    const hasConsumerStoppedPropagationRef = reactExports.useRef(false);
+    const isFormControl = button ? form || !!button.closest("form") : true;
+    const [checked, setChecked] = useControllableState({
+      prop: checkedProp,
+      defaultProp: defaultChecked ?? false,
+      onChange: onCheckedChange,
+      caller: SWITCH_NAME
+    });
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs(SwitchProvider, { scope: __scopeSwitch, checked, disabled, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        Primitive.button,
+        {
+          type: "button",
+          role: "switch",
+          "aria-checked": checked,
+          "aria-required": required,
+          "data-state": getState(checked),
+          "data-disabled": disabled ? "" : void 0,
+          disabled,
+          value,
+          ...switchProps,
+          ref: composedRefs,
+          onClick: composeEventHandlers(props.onClick, (event) => {
+            setChecked((prevChecked) => !prevChecked);
+            if (isFormControl) {
+              hasConsumerStoppedPropagationRef.current = event.isPropagationStopped();
+              if (!hasConsumerStoppedPropagationRef.current) event.stopPropagation();
+            }
+          })
+        }
+      ),
+      isFormControl && /* @__PURE__ */ jsxRuntimeExports.jsx(
+        SwitchBubbleInput,
+        {
+          control: button,
+          bubbles: !hasConsumerStoppedPropagationRef.current,
+          name,
+          value,
+          checked,
+          required,
+          disabled,
+          form,
+          style: { transform: "translateX(-100%)" }
+        }
+      )
+    ] });
+  }
+);
+Switch$1.displayName = SWITCH_NAME;
+var THUMB_NAME = "SwitchThumb";
+var SwitchThumb = reactExports.forwardRef(
+  (props, forwardedRef) => {
+    const { __scopeSwitch, ...thumbProps } = props;
+    const context = useSwitchContext(THUMB_NAME, __scopeSwitch);
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(
+      Primitive.span,
+      {
+        "data-state": getState(context.checked),
+        "data-disabled": context.disabled ? "" : void 0,
+        ...thumbProps,
+        ref: forwardedRef
       }
-    }
-  );
-});
-Label$1.displayName = NAME;
-var Root = Label$1;
-function Label({
+    );
+  }
+);
+SwitchThumb.displayName = THUMB_NAME;
+var BUBBLE_INPUT_NAME = "SwitchBubbleInput";
+var SwitchBubbleInput = reactExports.forwardRef(
+  ({
+    __scopeSwitch,
+    control,
+    checked,
+    bubbles = true,
+    ...props
+  }, forwardedRef) => {
+    const ref = reactExports.useRef(null);
+    const composedRefs = useComposedRefs(ref, forwardedRef);
+    const prevChecked = usePrevious(checked);
+    const controlSize = useSize(control);
+    reactExports.useEffect(() => {
+      const input = ref.current;
+      if (!input) return;
+      const inputProto = window.HTMLInputElement.prototype;
+      const descriptor = Object.getOwnPropertyDescriptor(
+        inputProto,
+        "checked"
+      );
+      const setChecked = descriptor.set;
+      if (prevChecked !== checked && setChecked) {
+        const event = new Event("click", { bubbles });
+        setChecked.call(input, checked);
+        input.dispatchEvent(event);
+      }
+    }, [prevChecked, checked, bubbles]);
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "input",
+      {
+        type: "checkbox",
+        "aria-hidden": true,
+        defaultChecked: checked,
+        ...props,
+        tabIndex: -1,
+        ref: composedRefs,
+        style: {
+          ...props.style,
+          ...controlSize,
+          position: "absolute",
+          pointerEvents: "none",
+          opacity: 0,
+          margin: 0
+        }
+      }
+    );
+  }
+);
+SwitchBubbleInput.displayName = BUBBLE_INPUT_NAME;
+function getState(checked) {
+  return checked ? "checked" : "unchecked";
+}
+var Root = Switch$1;
+var Thumb = SwitchThumb;
+function Switch({
   className,
   ...props
 }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsx(
     Root,
     {
-      "data-slot": "label",
+      "data-slot": "switch",
       className: cn(
-        "flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
+        "peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:border-ring focus-visible:ring-ring/50 dark:data-[state=unchecked]:bg-input/80 inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent shadow-xs transition-all outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+        className
+      ),
+      ...props,
+      children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+        Thumb,
+        {
+          "data-slot": "switch-thumb",
+          className: cn(
+            "bg-background dark:data-[state=unchecked]:bg-foreground dark:data-[state=checked]:bg-primary-foreground pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0"
+          )
+        }
+      )
+    }
+  );
+}
+function Textarea({ className, ...props }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "textarea",
+    {
+      "data-slot": "textarea",
+      className: cn(
+        "border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
         className
       ),
       ...props
@@ -36001,8 +36453,8 @@ const Error$1 = Variant({
     "expected": Vec(Text)
   })
 });
-const Result__1 = Variant({ "ok": Null, "err": Error$1 });
-const Stylist = Record({
+const Result = Variant({ "ok": Null, "err": Error$1 });
+const Stylist__1 = Record({
   "name": Text,
   "specialty": Text,
   "availability": Text
@@ -36012,31 +36464,115 @@ const UserRole = Variant({
   "user": Null,
   "guest": Null
 });
-const Value = Variant({
-  "int": Int,
-  "nat": Nat,
-  "float": Float64,
-  "bool": Bool,
-  "null": Null,
-  "text": Text
+const ClientRequest = Record({
+  "id": Nat,
+  "service": Text,
+  "status": Text,
+  "assignedStylistId": Opt(Nat),
+  "recommendedStylistId": Opt(Nat),
+  "idempotencyKey": Text,
+  "timing": Text,
+  "backupStylistId": Opt(Nat),
+  "clientName": Text,
+  "explanation": Text,
+  "createdAt": Nat,
+  "specialtyMatters": Bool,
+  "updatedAt": Nat,
+  "notes": Text,
+  "requestedTime": Text,
+  "revision": Nat
 });
-const Cell = Record({ "value": Value, "name": Text });
-const Result = Record({
-  "hasMore": Bool,
-  "rows": Vec(Vec(Cell))
+const ServicePreference = Record({
+  "name": Text,
+  "level": Text
+});
+const StylistInput = Record({
+  "name": Text,
+  "acceptsNewClients": Bool,
+  "availabilityExpiresAt": Nat,
+  "availabilityNote": Text,
+  "phone": Text,
+  "services": Vec(ServicePreference),
+  "availabilityStatus": Text
+});
+const Stylist = Record({
+  "id": Nat,
+  "active": Bool,
+  "assignments": Nat,
+  "name": Text,
+  "createdAt": Nat,
+  "acceptsNewClients": Bool,
+  "availabilityExpiresAt": Nat,
+  "updatedAt": Nat,
+  "eligibleOpportunities": Nat,
+  "noResponses": Nat,
+  "lastAssignedAt": Nat,
+  "availabilityNote": Text,
+  "phone": Text,
+  "declines": Nat,
+  "revision": Nat,
+  "services": Vec(ServicePreference),
+  "availabilityStatus": Text
+});
+const AuditEvent = Record({
+  "id": Nat,
+  "requestId": Opt(Nat),
+  "stylistId": Opt(Nat),
+  "kind": Text,
+  "createdAt": Nat,
+  "detail": Text
+});
+const Dashboard = Record({
+  "audit": Vec(AuditEvent),
+  "stylists": Vec(Stylist),
+  "requests": Vec(ClientRequest)
+});
+const Backup = Record({
+  "dashboard": Dashboard,
+  "exportedAt": Nat,
+  "version": Nat
+});
+const RouteInput = Record({
+  "service": Text,
+  "idempotencyKey": Text,
+  "timing": Text,
+  "clientName": Text,
+  "specialtyMatters": Bool,
+  "notes": Text,
+  "requestedTime": Text
+});
+const RoutingResult = Record({
+  "request": ClientRequest,
+  "backup": Opt(Stylist),
+  "recommended": Opt(Stylist)
 });
 Service({
   "_initialize_access_control": Func([], [], []),
-  "_internet_identity_sign_in_finish": Func([], [Result__1], []),
+  "_internet_identity_sign_in_finish": Func([], [Result], []),
   "_internet_identity_sign_in_start": Func([], [Vec(Nat8)], []),
-  "addStylist": Func([Stylist], [], []),
+  "addStylist": Func([Stylist__1], [], []),
   "assignCallerUserRole": Func([Principal2, UserRole], [], []),
-  "execute": Func([Text], [Result], ["query"]),
+  "assignRequest": Func(
+    [Nat, Nat, Nat, Text],
+    [ClientRequest],
+    []
+  ),
+  "createStylist": Func([StylistInput], [Stylist], []),
+  "exportBackup": Func([], [Backup], ["query"]),
   "getApiDoc": Func([], [Text], ["query"]),
   "getCallerUserRole": Func([], [UserRole], ["query"]),
-  "getStylists": Func([], [Vec(Stylist)], ["query"]),
+  "getDashboard": Func([], [Dashboard], ["query"]),
+  "getStylists": Func([], [Vec(Stylist__1)], ["query"]),
   "isCallerAdmin": Func([], [Bool], ["query"]),
-  "schema": Func([], [Text], ["query"])
+  "routeClient": Func([RouteInput], [RoutingResult], []),
+  "setRequestStatus": Func(
+    [Nat, Text, Nat, Text],
+    [ClientRequest],
+    []
+  ),
+  "setStylistActive": Func([Nat, Bool, Nat], [Stylist], []),
+  "updateStylist": Func([Nat, StylistInput, Nat], [Stylist], []),
+  "useBackup": Func([Nat, Nat, Text], [RoutingResult], [])
 });
 const idlFactory = ({ IDL: IDL2 }) => {
   const Error2 = IDL2.Variant({
@@ -36060,8 +36596,8 @@ const idlFactory = ({ IDL: IDL2 }) => {
       "expected": IDL2.Vec(IDL2.Text)
     })
   });
-  const Result__12 = IDL2.Variant({ "ok": IDL2.Null, "err": Error2 });
-  const Stylist2 = IDL2.Record({
+  const Result2 = IDL2.Variant({ "ok": IDL2.Null, "err": Error2 });
+  const Stylist__12 = IDL2.Record({
     "name": IDL2.Text,
     "specialty": IDL2.Text,
     "availability": IDL2.Text
@@ -36071,33 +36607,120 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "user": IDL2.Null,
     "guest": IDL2.Null
   });
-  const Value2 = IDL2.Variant({
-    "int": IDL2.Int,
-    "nat": IDL2.Nat,
-    "float": IDL2.Float64,
-    "bool": IDL2.Bool,
-    "null": IDL2.Null,
-    "text": IDL2.Text
+  const ClientRequest2 = IDL2.Record({
+    "id": IDL2.Nat,
+    "service": IDL2.Text,
+    "status": IDL2.Text,
+    "assignedStylistId": IDL2.Opt(IDL2.Nat),
+    "recommendedStylistId": IDL2.Opt(IDL2.Nat),
+    "idempotencyKey": IDL2.Text,
+    "timing": IDL2.Text,
+    "backupStylistId": IDL2.Opt(IDL2.Nat),
+    "clientName": IDL2.Text,
+    "explanation": IDL2.Text,
+    "createdAt": IDL2.Nat,
+    "specialtyMatters": IDL2.Bool,
+    "updatedAt": IDL2.Nat,
+    "notes": IDL2.Text,
+    "requestedTime": IDL2.Text,
+    "revision": IDL2.Nat
   });
-  const Cell2 = IDL2.Record({ "value": Value2, "name": IDL2.Text });
-  const Result2 = IDL2.Record({
-    "hasMore": IDL2.Bool,
-    "rows": IDL2.Vec(IDL2.Vec(Cell2))
+  const ServicePreference2 = IDL2.Record({
+    "name": IDL2.Text,
+    "level": IDL2.Text
+  });
+  const StylistInput2 = IDL2.Record({
+    "name": IDL2.Text,
+    "acceptsNewClients": IDL2.Bool,
+    "availabilityExpiresAt": IDL2.Nat,
+    "availabilityNote": IDL2.Text,
+    "phone": IDL2.Text,
+    "services": IDL2.Vec(ServicePreference2),
+    "availabilityStatus": IDL2.Text
+  });
+  const Stylist2 = IDL2.Record({
+    "id": IDL2.Nat,
+    "active": IDL2.Bool,
+    "assignments": IDL2.Nat,
+    "name": IDL2.Text,
+    "createdAt": IDL2.Nat,
+    "acceptsNewClients": IDL2.Bool,
+    "availabilityExpiresAt": IDL2.Nat,
+    "updatedAt": IDL2.Nat,
+    "eligibleOpportunities": IDL2.Nat,
+    "noResponses": IDL2.Nat,
+    "lastAssignedAt": IDL2.Nat,
+    "availabilityNote": IDL2.Text,
+    "phone": IDL2.Text,
+    "declines": IDL2.Nat,
+    "revision": IDL2.Nat,
+    "services": IDL2.Vec(ServicePreference2),
+    "availabilityStatus": IDL2.Text
+  });
+  const AuditEvent2 = IDL2.Record({
+    "id": IDL2.Nat,
+    "requestId": IDL2.Opt(IDL2.Nat),
+    "stylistId": IDL2.Opt(IDL2.Nat),
+    "kind": IDL2.Text,
+    "createdAt": IDL2.Nat,
+    "detail": IDL2.Text
+  });
+  const Dashboard2 = IDL2.Record({
+    "audit": IDL2.Vec(AuditEvent2),
+    "stylists": IDL2.Vec(Stylist2),
+    "requests": IDL2.Vec(ClientRequest2)
+  });
+  const Backup2 = IDL2.Record({
+    "dashboard": Dashboard2,
+    "exportedAt": IDL2.Nat,
+    "version": IDL2.Nat
+  });
+  const RouteInput2 = IDL2.Record({
+    "service": IDL2.Text,
+    "idempotencyKey": IDL2.Text,
+    "timing": IDL2.Text,
+    "clientName": IDL2.Text,
+    "specialtyMatters": IDL2.Bool,
+    "notes": IDL2.Text,
+    "requestedTime": IDL2.Text
+  });
+  const RoutingResult2 = IDL2.Record({
+    "request": ClientRequest2,
+    "backup": IDL2.Opt(Stylist2),
+    "recommended": IDL2.Opt(Stylist2)
   });
   return IDL2.Service({
     "_initialize_access_control": IDL2.Func([], [], []),
-    "_internet_identity_sign_in_finish": IDL2.Func([], [Result__12], []),
+    "_internet_identity_sign_in_finish": IDL2.Func([], [Result2], []),
     "_internet_identity_sign_in_start": IDL2.Func([], [IDL2.Vec(IDL2.Nat8)], []),
-    "addStylist": IDL2.Func([Stylist2], [], []),
+    "addStylist": IDL2.Func([Stylist__12], [], []),
     "assignCallerUserRole": IDL2.Func([IDL2.Principal, UserRole2], [], []),
-    "execute": IDL2.Func([IDL2.Text], [Result2], ["query"]),
+    "assignRequest": IDL2.Func(
+      [IDL2.Nat, IDL2.Nat, IDL2.Nat, IDL2.Text],
+      [ClientRequest2],
+      []
+    ),
+    "createStylist": IDL2.Func([StylistInput2], [Stylist2], []),
+    "exportBackup": IDL2.Func([], [Backup2], ["query"]),
     "getApiDoc": IDL2.Func([], [IDL2.Text], ["query"]),
     "getCallerUserRole": IDL2.Func([], [UserRole2], ["query"]),
-    "getStylists": IDL2.Func([], [IDL2.Vec(Stylist2)], ["query"]),
+    "getDashboard": IDL2.Func([], [Dashboard2], ["query"]),
+    "getStylists": IDL2.Func([], [IDL2.Vec(Stylist__12)], ["query"]),
     "isCallerAdmin": IDL2.Func([], [IDL2.Bool], ["query"]),
-    "schema": IDL2.Func([], [IDL2.Text], ["query"])
+    "routeClient": IDL2.Func([RouteInput2], [RoutingResult2], []),
+    "setRequestStatus": IDL2.Func(
+      [IDL2.Nat, IDL2.Text, IDL2.Nat, IDL2.Text],
+      [ClientRequest2],
+      []
+    ),
+    "setStylistActive": IDL2.Func([IDL2.Nat, IDL2.Bool, IDL2.Nat], [Stylist2], []),
+    "updateStylist": IDL2.Func([IDL2.Nat, StylistInput2, IDL2.Nat], [Stylist2], []),
+    "useBackup": IDL2.Func([IDL2.Nat, IDL2.Nat, IDL2.Text], [RoutingResult2], [])
   });
 };
+function record_opt_to_undefined(arg) {
+  return arg == null ? void 0 : arg;
+}
 class Backend {
   constructor(actor, _uploadFile, _downloadFile, processError2) {
     this.actor = actor;
@@ -36123,14 +36746,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor._internet_identity_sign_in_finish();
-        return from_candid_Result__1_n1(this._uploadFile, this._downloadFile, result);
+        return from_candid_Result_n1(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor._internet_identity_sign_in_finish();
-      return from_candid_Result__1_n1(this._uploadFile, this._downloadFile, result);
+      return from_candid_Result_n1(this._uploadFile, this._downloadFile, result);
     }
   }
   async _internet_identity_sign_in_start() {
@@ -36175,18 +36798,46 @@ class Backend {
       return result;
     }
   }
-  async execute(arg0) {
+  async assignRequest(arg0, arg1, arg2, arg3) {
     if (this.processError) {
       try {
-        const result = await this.actor.execute(arg0);
-        return from_candid_Result_n7(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.assignRequest(arg0, arg1, arg2, arg3);
+        return from_candid_ClientRequest_n7(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.execute(arg0);
-      return from_candid_Result_n7(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.assignRequest(arg0, arg1, arg2, arg3);
+      return from_candid_ClientRequest_n7(this._uploadFile, this._downloadFile, result);
+    }
+  }
+  async createStylist(arg0) {
+    if (this.processError) {
+      try {
+        const result = await this.actor.createStylist(arg0);
+        return result;
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.createStylist(arg0);
+      return result;
+    }
+  }
+  async exportBackup() {
+    if (this.processError) {
+      try {
+        const result = await this.actor.exportBackup();
+        return from_candid_Backup_n10(this._uploadFile, this._downloadFile, result);
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.exportBackup();
+      return from_candid_Backup_n10(this._uploadFile, this._downloadFile, result);
     }
   }
   async getApiDoc() {
@@ -36207,14 +36858,28 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.getCallerUserRole();
-        return from_candid_UserRole_n15(this._uploadFile, this._downloadFile, result);
+        return from_candid_UserRole_n18(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getCallerUserRole();
-      return from_candid_UserRole_n15(this._uploadFile, this._downloadFile, result);
+      return from_candid_UserRole_n18(this._uploadFile, this._downloadFile, result);
+    }
+  }
+  async getDashboard() {
+    if (this.processError) {
+      try {
+        const result = await this.actor.getDashboard();
+        return from_candid_Dashboard_n12(this._uploadFile, this._downloadFile, result);
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.getDashboard();
+      return from_candid_Dashboard_n12(this._uploadFile, this._downloadFile, result);
     }
   }
   async getStylists() {
@@ -36245,73 +36910,159 @@ class Backend {
       return result;
     }
   }
-  async schema() {
+  async routeClient(arg0) {
     if (this.processError) {
       try {
-        const result = await this.actor.schema();
+        const result = await this.actor.routeClient(arg0);
+        return from_candid_RoutingResult_n20(this._uploadFile, this._downloadFile, result);
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.routeClient(arg0);
+      return from_candid_RoutingResult_n20(this._uploadFile, this._downloadFile, result);
+    }
+  }
+  async setRequestStatus(arg0, arg1, arg2, arg3) {
+    if (this.processError) {
+      try {
+        const result = await this.actor.setRequestStatus(arg0, arg1, arg2, arg3);
+        return from_candid_ClientRequest_n7(this._uploadFile, this._downloadFile, result);
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.setRequestStatus(arg0, arg1, arg2, arg3);
+      return from_candid_ClientRequest_n7(this._uploadFile, this._downloadFile, result);
+    }
+  }
+  async setStylistActive(arg0, arg1, arg2) {
+    if (this.processError) {
+      try {
+        const result = await this.actor.setStylistActive(arg0, arg1, arg2);
         return result;
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.schema();
+      const result = await this.actor.setStylistActive(arg0, arg1, arg2);
       return result;
     }
   }
+  async updateStylist(arg0, arg1, arg2) {
+    if (this.processError) {
+      try {
+        const result = await this.actor.updateStylist(arg0, arg1, arg2);
+        return result;
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.updateStylist(arg0, arg1, arg2);
+      return result;
+    }
+  }
+  async useBackup(arg0, arg1, arg2) {
+    if (this.processError) {
+      try {
+        const result = await this.actor.useBackup(arg0, arg1, arg2);
+        return from_candid_RoutingResult_n20(this._uploadFile, this._downloadFile, result);
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.useBackup(arg0, arg1, arg2);
+      return from_candid_RoutingResult_n20(this._uploadFile, this._downloadFile, result);
+    }
+  }
 }
-function from_candid_Cell_n11(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n12(_uploadFile, _downloadFile, value);
+function from_candid_AuditEvent_n15(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n16(_uploadFile, _downloadFile, value);
+}
+function from_candid_Backup_n10(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n11(_uploadFile, _downloadFile, value);
+}
+function from_candid_ClientRequest_n7(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n8(_uploadFile, _downloadFile, value);
+}
+function from_candid_Dashboard_n12(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n13(_uploadFile, _downloadFile, value);
 }
 function from_candid_Error_n3(_uploadFile, _downloadFile, value) {
   return from_candid_variant_n4(_uploadFile, _downloadFile, value);
 }
-function from_candid_Result__1_n1(_uploadFile, _downloadFile, value) {
+function from_candid_Result_n1(_uploadFile, _downloadFile, value) {
   return from_candid_variant_n2(_uploadFile, _downloadFile, value);
 }
-function from_candid_Result_n7(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n8(_uploadFile, _downloadFile, value);
+function from_candid_RoutingResult_n20(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n21(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserRole_n15(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n16(_uploadFile, _downloadFile, value);
+function from_candid_UserRole_n18(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n19(_uploadFile, _downloadFile, value);
 }
-function from_candid_Value_n13(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n14(_uploadFile, _downloadFile, value);
+function from_candid_opt_n22(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : value[0];
 }
-function from_candid_record_n12(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n9(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : value[0];
+}
+function from_candid_record_n11(_uploadFile, _downloadFile, value) {
   return {
-    value: from_candid_Value_n13(_uploadFile, _downloadFile, value.value),
-    name: value.name
+    dashboard: from_candid_Dashboard_n12(_uploadFile, _downloadFile, value.dashboard),
+    exportedAt: value.exportedAt,
+    version: value.version
+  };
+}
+function from_candid_record_n13(_uploadFile, _downloadFile, value) {
+  return {
+    audit: from_candid_vec_n14(_uploadFile, _downloadFile, value.audit),
+    stylists: value.stylists,
+    requests: from_candid_vec_n17(_uploadFile, _downloadFile, value.requests)
+  };
+}
+function from_candid_record_n16(_uploadFile, _downloadFile, value) {
+  return {
+    id: value.id,
+    requestId: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.requestId)),
+    stylistId: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.stylistId)),
+    kind: value.kind,
+    createdAt: value.createdAt,
+    detail: value.detail
+  };
+}
+function from_candid_record_n21(_uploadFile, _downloadFile, value) {
+  return {
+    request: from_candid_ClientRequest_n7(_uploadFile, _downloadFile, value.request),
+    backup: record_opt_to_undefined(from_candid_opt_n22(_uploadFile, _downloadFile, value.backup)),
+    recommended: record_opt_to_undefined(from_candid_opt_n22(_uploadFile, _downloadFile, value.recommended))
   };
 }
 function from_candid_record_n8(_uploadFile, _downloadFile, value) {
   return {
-    hasMore: value.hasMore,
-    rows: from_candid_vec_n9(_uploadFile, _downloadFile, value.rows)
+    id: value.id,
+    service: value.service,
+    status: value.status,
+    assignedStylistId: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.assignedStylistId)),
+    recommendedStylistId: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.recommendedStylistId)),
+    idempotencyKey: value.idempotencyKey,
+    timing: value.timing,
+    backupStylistId: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.backupStylistId)),
+    clientName: value.clientName,
+    explanation: value.explanation,
+    createdAt: value.createdAt,
+    specialtyMatters: value.specialtyMatters,
+    updatedAt: value.updatedAt,
+    notes: value.notes,
+    requestedTime: value.requestedTime,
+    revision: value.revision
   };
 }
-function from_candid_variant_n14(_uploadFile, _downloadFile, value) {
-  return "int" in value ? {
-    __kind__: "int",
-    int: value.int
-  } : "nat" in value ? {
-    __kind__: "nat",
-    nat: value.nat
-  } : "float" in value ? {
-    __kind__: "float",
-    float: value.float
-  } : "bool" in value ? {
-    __kind__: "bool",
-    bool: value.bool
-  } : "null" in value ? {
-    __kind__: "null",
-    null: value.null
-  } : "text" in value ? {
-    __kind__: "text",
-    text: value.text
-  } : value;
-}
-function from_candid_variant_n16(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n19(_uploadFile, _downloadFile, value) {
   return "admin" in value ? "admin" : "user" in value ? "user" : "guest" in value ? "guest" : value;
 }
 function from_candid_variant_n2(_uploadFile, _downloadFile, value) {
@@ -36356,11 +37107,11 @@ function from_candid_variant_n4(_uploadFile, _downloadFile, value) {
     FrontendOriginMismatch: value.FrontendOriginMismatch
   } : value;
 }
-function from_candid_vec_n10(_uploadFile, _downloadFile, value) {
-  return value.map((x2) => from_candid_Cell_n11(_uploadFile, _downloadFile, x2));
+function from_candid_vec_n14(_uploadFile, _downloadFile, value) {
+  return value.map((x2) => from_candid_AuditEvent_n15(_uploadFile, _downloadFile, x2));
 }
-function from_candid_vec_n9(_uploadFile, _downloadFile, value) {
-  return value.map((x2) => from_candid_vec_n10(_uploadFile, _downloadFile, x2));
+function from_candid_vec_n17(_uploadFile, _downloadFile, value) {
+  return value.map((x2) => from_candid_ClientRequest_n7(_uploadFile, _downloadFile, x2));
 }
 function to_candid_UserRole_n5(_uploadFile, _downloadFile, value) {
   return to_candid_variant_n6(_uploadFile, _downloadFile, value);
@@ -36388,207 +37139,1515 @@ function createActor(canisterId, _uploadFile, _downloadFile, options = {}) {
   });
   return new Backend(actor, _uploadFile, _downloadFile, options.processError);
 }
-function useStylists() {
-  const { actor, isFetching } = useActor(createActor);
-  return useQuery({
-    queryKey: ["stylists"],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getStylists();
-    },
-    enabled: !!actor && !isFetching
-  });
-}
-function useAddStylist() {
+const DIRECTORY_KEY = ["directory"];
+function useInitializeAccess() {
   const { actor } = useActor(createActor);
   const queryClient2 = useQueryClient();
   return useMutation({
-    mutationFn: async (stylist) => {
-      if (!actor) throw new Error("Backend is not ready");
-      return actor.addStylist(stylist);
+    mutationFn: async () => {
+      if (!actor) throw new Error("The secure workspace is not ready yet.");
+      await actor._initialize_access_control();
+      return actor.getCallerUserRole();
     },
     onSuccess: () => {
-      void queryClient2.invalidateQueries({ queryKey: ["stylists"] });
+      void queryClient2.invalidateQueries({ queryKey: DIRECTORY_KEY });
     }
   });
 }
-const FILTERS = ["Specialty", "Availability", "Fairness"];
-function App() {
-  const { data: stylists = [], isLoading } = useStylists();
-  const addStylist = useAddStylist();
-  const [name, setName] = reactExports.useState("");
-  const [specialty, setSpecialty] = reactExports.useState("");
-  const [availability, setAvailability] = reactExports.useState("");
-  const canSubmit = name.trim() !== "" && specialty.trim() !== "" && availability.trim() !== "";
-  function handleSubmit(event) {
-    event.preventDefault();
-    if (!canSubmit) return;
-    const captured = {
-      name: name.trim(),
-      specialty: specialty.trim(),
-      availability: availability.trim()
-    };
-    setName("");
-    setSpecialty("");
-    setAvailability("");
-    addStylist.mutate(captured, {
-      onError: () => {
-        setName((current) => current === "" ? captured.name : current);
-        setSpecialty(
-          (current) => current === "" ? captured.specialty : current
-        );
-        setAvailability(
-          (current) => current === "" ? captured.availability : current
-        );
-      }
-    });
+function useDirectory(enabled = true) {
+  const { actor, isFetching } = useActor(createActor);
+  return useQuery({
+    queryKey: DIRECTORY_KEY,
+    queryFn: async () => {
+      if (!actor) throw new Error("The secure workspace is not ready yet.");
+      return actor.getDashboard();
+    },
+    enabled: enabled && !!actor && !isFetching,
+    retry: false
+  });
+}
+function useDirectoryMutation(action) {
+  const { actor } = useActor(createActor);
+  const queryClient2 = useQueryClient();
+  return useMutation({
+    mutationFn: async (variables) => {
+      if (!actor) throw new Error("The secure workspace is not ready yet.");
+      return action(actor, variables);
+    },
+    onSuccess: () => {
+      void queryClient2.invalidateQueries({ queryKey: DIRECTORY_KEY });
+    }
+  });
+}
+function useCreateStylist() {
+  return useDirectoryMutation(
+    (actor, input) => actor.createStylist(input)
+  );
+}
+function useUpdateStylist() {
+  return useDirectoryMutation(
+    (actor, variables) => actor.updateStylist(variables.id, variables.input, variables.revision)
+  );
+}
+function useSetStylistActive() {
+  return useDirectoryMutation(
+    (actor, variables) => actor.setStylistActive(variables.id, variables.active, variables.revision)
+  );
+}
+function useRouteClient() {
+  return useDirectoryMutation((actor, input) => actor.routeClient(input));
+}
+function useAssignRequest() {
+  return useDirectoryMutation(
+    (actor, variables) => actor.assignRequest(
+      variables.requestId,
+      variables.stylistId,
+      variables.revision,
+      variables.note ?? ""
+    )
+  );
+}
+function useBackupRecommendation() {
+  return useDirectoryMutation((actor, variables) => {
+    const chooseBackup = actor.useBackup.bind(actor);
+    return chooseBackup(
+      variables.requestId,
+      variables.revision,
+      variables.reason
+    );
+  });
+}
+function useSetRequestStatus() {
+  return useDirectoryMutation(
+    (actor, variables) => actor.setRequestStatus(
+      variables.requestId,
+      variables.status,
+      variables.revision,
+      variables.reason ?? ""
+    )
+  );
+}
+function useExportBackup() {
+  const { actor } = useActor(createActor);
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error("The secure workspace is not ready yet.");
+      return actor.exportBackup();
+    }
+  });
+}
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const toKebabCase = (string) => string.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+const toCamelCase = (string) => string.replace(
+  /^([A-Z])|[\s-_]+(\w)/g,
+  (match, p1, p2) => p2 ? p2.toUpperCase() : p1.toLowerCase()
+);
+const toPascalCase = (string) => {
+  const camelCase = toCamelCase(string);
+  return camelCase.charAt(0).toUpperCase() + camelCase.slice(1);
+};
+const mergeClasses = (...classes) => classes.filter((className, index2, array) => {
+  return Boolean(className) && className.trim() !== "" && array.indexOf(className) === index2;
+}).join(" ").trim();
+const hasA11yProp = (props) => {
+  for (const prop in props) {
+    if (prop.startsWith("aria-") || prop === "role" || prop === "title") {
+      return true;
+    }
   }
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "min-h-screen bg-background", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("main", { className: "mx-auto flex w-full max-w-3xl flex-col gap-10 px-6 py-16", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { className: "flex flex-col items-center gap-6 text-center", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "font-display text-4xl font-semibold tracking-tight text-foreground", children: "Stylist Directory" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap items-center justify-center gap-2", children: FILTERS.map((filter) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "span",
-        {
-          "data-ocid": `filter.${filter.toLowerCase()}`,
-          className: "rounded-full border border-border bg-card px-4 py-1.5 text-sm text-muted-foreground",
-          children: filter
+};
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+var defaultAttributes = {
+  xmlns: "http://www.w3.org/2000/svg",
+  width: 24,
+  height: 24,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 2,
+  strokeLinecap: "round",
+  strokeLinejoin: "round"
+};
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const Icon = reactExports.forwardRef(
+  ({
+    color = "currentColor",
+    size = 24,
+    strokeWidth = 2,
+    absoluteStrokeWidth,
+    className = "",
+    children,
+    iconNode,
+    ...rest
+  }, ref) => reactExports.createElement(
+    "svg",
+    {
+      ref,
+      ...defaultAttributes,
+      width: size,
+      height: size,
+      stroke: color,
+      strokeWidth: absoluteStrokeWidth ? Number(strokeWidth) * 24 / Number(size) : strokeWidth,
+      className: mergeClasses("lucide", className),
+      ...!children && !hasA11yProp(rest) && { "aria-hidden": "true" },
+      ...rest
+    },
+    [
+      ...iconNode.map(([tag, attrs]) => reactExports.createElement(tag, attrs)),
+      ...Array.isArray(children) ? children : [children]
+    ]
+  )
+);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const createLucideIcon = (iconName, iconNode) => {
+  const Component2 = reactExports.forwardRef(
+    ({ className, ...props }, ref) => reactExports.createElement(Icon, {
+      ref,
+      iconNode,
+      className: mergeClasses(
+        `lucide-${toKebabCase(toPascalCase(iconName))}`,
+        `lucide-${iconName}`,
+        className
+      ),
+      ...props
+    })
+  );
+  Component2.displayName = toPascalCase(iconName);
+  return Component2;
+};
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$h = [
+  ["path", { d: "m12 19-7-7 7-7", key: "1l729n" }],
+  ["path", { d: "M19 12H5", key: "x3x0zl" }]
+];
+const ArrowLeft = createLucideIcon("arrow-left", __iconNode$h);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$g = [
+  ["path", { d: "M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5", key: "1osxxc" }],
+  ["path", { d: "M16 2v4", key: "4m81vk" }],
+  ["path", { d: "M8 2v4", key: "1cmpym" }],
+  ["path", { d: "M3 10h5", key: "r794hk" }],
+  ["path", { d: "M17.5 17.5 16 16.3V14", key: "akvzfd" }],
+  ["circle", { cx: "16", cy: "16", r: "6", key: "qoo3c4" }]
+];
+const CalendarClock = createLucideIcon("calendar-clock", __iconNode$g);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$f = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
+const Check = createLucideIcon("check", __iconNode$f);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$e = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
+const ChevronRight = createLucideIcon("chevron-right", __iconNode$e);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$d = [
+  ["rect", { width: "8", height: "4", x: "8", y: "2", rx: "1", ry: "1", key: "tgr4d6" }],
+  [
+    "path",
+    {
+      d: "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2",
+      key: "116196"
+    }
+  ],
+  ["path", { d: "M12 11h4", key: "1jrz19" }],
+  ["path", { d: "M12 16h4", key: "n85exb" }],
+  ["path", { d: "M8 11h.01", key: "1dfujw" }],
+  ["path", { d: "M8 16h.01", key: "18s6g9" }]
+];
+const ClipboardList = createLucideIcon("clipboard-list", __iconNode$d);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$c = [
+  ["path", { d: "M12 15V3", key: "m9g1x1" }],
+  ["path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4", key: "ih7n3h" }],
+  ["path", { d: "m7 10 5 5 5-5", key: "brsn70" }]
+];
+const Download = createLucideIcon("download", __iconNode$c);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$b = [
+  ["path", { d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8", key: "1357e3" }],
+  ["path", { d: "M3 3v5h5", key: "1xhq8a" }],
+  ["path", { d: "M12 7v5l4 2", key: "1fdv2h" }]
+];
+const History = createLucideIcon("history", __iconNode$b);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$a = [["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]];
+const LoaderCircle = createLucideIcon("loader-circle", __iconNode$a);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$9 = [
+  ["path", { d: "m16 17 5-5-5-5", key: "1bji2h" }],
+  ["path", { d: "M21 12H9", key: "dn1m92" }],
+  ["path", { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", key: "1uf3rs" }]
+];
+const LogOut = createLucideIcon("log-out", __iconNode$9);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$8 = [
+  [
+    "path",
+    {
+      d: "M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384",
+      key: "9njp5v"
+    }
+  ]
+];
+const Phone = createLucideIcon("phone", __iconNode$8);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$7 = [
+  ["path", { d: "M5 12h14", key: "1ays0h" }],
+  ["path", { d: "M12 5v14", key: "s699le" }]
+];
+const Plus = createLucideIcon("plus", __iconNode$7);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$6 = [
+  ["path", { d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8", key: "1357e3" }],
+  ["path", { d: "M3 3v5h5", key: "1xhq8a" }]
+];
+const RotateCcw = createLucideIcon("rotate-ccw", __iconNode$6);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$5 = [
+  ["circle", { cx: "6", cy: "6", r: "3", key: "1lh9wr" }],
+  ["path", { d: "M8.12 8.12 12 12", key: "1alkpv" }],
+  ["path", { d: "M20 4 8.12 15.88", key: "xgtan2" }],
+  ["circle", { cx: "6", cy: "18", r: "3", key: "fqmcym" }],
+  ["path", { d: "M14.8 14.8 20 20", key: "ptml3r" }]
+];
+const Scissors = createLucideIcon("scissors", __iconNode$5);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$4 = [
+  [
+    "path",
+    {
+      d: "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z",
+      key: "oel41y"
+    }
+  ],
+  ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
+];
+const ShieldCheck = createLucideIcon("shield-check", __iconNode$4);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$3 = [
+  [
+    "path",
+    {
+      d: "M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z",
+      key: "4pj2yx"
+    }
+  ],
+  ["path", { d: "M20 3v4", key: "1olli1" }],
+  ["path", { d: "M22 5h-4", key: "1gvqau" }],
+  ["path", { d: "M4 17v2", key: "vumght" }],
+  ["path", { d: "M5 18H3", key: "zchphs" }]
+];
+const Sparkles = createLucideIcon("sparkles", __iconNode$3);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$2 = [
+  ["circle", { cx: "12", cy: "8", r: "5", key: "1hypcn" }],
+  ["path", { d: "M20 21a8 8 0 0 0-16 0", key: "rfgkzh" }]
+];
+const UserRound = createLucideIcon("user-round", __iconNode$2);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$1 = [
+  ["path", { d: "M18 21a8 8 0 0 0-16 0", key: "3ypg7q" }],
+  ["circle", { cx: "10", cy: "8", r: "5", key: "o932ke" }],
+  ["path", { d: "M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3", key: "10s06x" }]
+];
+const UsersRound = createLucideIcon("users-round", __iconNode$1);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode = [
+  ["path", { d: "M18 6 6 18", key: "1bl5f8" }],
+  ["path", { d: "m6 6 12 12", key: "d8bk6v" }]
+];
+const X = createLucideIcon("x", __iconNode);
+const NAV_ITEMS = [
+  { id: "route", label: "Route", icon: Sparkles },
+  { id: "today", label: "Today", icon: CalendarClock },
+  { id: "stylists", label: "Stylists", icon: UsersRound },
+  { id: "history", label: "History", icon: History }
+];
+const STATUS_LABELS = {
+  suggested: "Ready to assign",
+  confirmed: "Confirmed",
+  completed: "Completed",
+  cancelled: "Cancelled",
+  unmatched: "Needs attention"
+};
+function expiryInHours(hours) {
+  return BigInt(Date.now() + hours * 60 * 60 * 1e3) * 1000000n;
+}
+function fromNanoseconds(value) {
+  if (value === 0n) return "Not yet";
+  return new Intl.DateTimeFormat(void 0, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(Number(value / 1000000n));
+}
+function initials(name) {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+}
+function serviceNames(stylists) {
+  return Array.from(
+    new Set(
+      stylists.flatMap(
+        (stylist) => stylist.services.filter((service) => service.level !== "avoid").map((service) => service.name.trim())
+      )
+    )
+  ).filter(Boolean).sort((a2, b2) => a2.localeCompare(b2));
+}
+function getStylist(stylists, id) {
+  if (id === void 0) return void 0;
+  return stylists.find((stylist) => stylist.id === id);
+}
+function mutationMessage(error) {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.toLowerCase().includes("unauthorized")) {
+    return "This workspace is restricted to its owner.";
+  }
+  if (message.toLowerCase().includes("reject") || message.toLowerCase().includes("trap")) {
+    return "That record changed before your update was saved. Refresh and try again.";
+  }
+  return "Your change was not saved. Check your connection and try again.";
+}
+function LoginScreen() {
+  const { login, isLoggingIn, isLoginError } = useInternetIdentity();
+  const [attempted, setAttempted] = reactExports.useState(false);
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("main", { className: "login-shell", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "login-card", "aria-labelledby": "login-title", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "brand-mark", "aria-hidden": "true", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Scissors, { size: 25, strokeWidth: 1.8 }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "eyebrow", children: "Private workspace" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { id: "login-title", children: "A fair chair, every time." }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "login-copy", children: "Route new clients by real availability, service fit, and a transparent rotation your team can trust." }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      Button,
+      {
+        className: "h-14 w-full text-base",
+        onClick: () => {
+          setAttempted(true);
+          login();
         },
-        filter
-      )) })
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { "data-ocid": "add_stylist_card", className: "shadow-subtle", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "flex flex-col gap-5", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "font-display text-xl font-semibold text-foreground", children: "Add Stylist" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("form", { onSubmit: handleSubmit, className: "flex flex-col gap-4", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1.5", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { htmlFor: "name", className: "text-sm text-muted-foreground", children: "Name" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            Input,
-            {
-              id: "name",
-              "data-ocid": "stylist.name_input",
-              value: name,
-              onChange: (e) => setName(e.target.value),
-              placeholder: "Stylist name"
-            }
-          )
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1.5", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            Label,
-            {
-              htmlFor: "specialty",
-              className: "text-sm text-muted-foreground",
-              children: "Specialty"
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            Input,
-            {
-              id: "specialty",
-              "data-ocid": "stylist.specialty_input",
-              value: specialty,
-              onChange: (e) => setSpecialty(e.target.value),
-              placeholder: "e.g. Hair, Nails, Makeup"
-            }
-          )
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1.5", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            Label,
-            {
-              htmlFor: "availability",
-              className: "text-sm text-muted-foreground",
-              children: "Availability"
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            Input,
-            {
-              id: "availability",
-              "data-ocid": "stylist.availability_input",
-              value: availability,
-              onChange: (e) => setAvailability(e.target.value),
-              placeholder: "e.g. Mon–Fri, Weekends"
-            }
-          )
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          Button,
-          {
-            type: "submit",
-            "data-ocid": "stylist.submit_button",
-            className: "mt-1 w-full",
-            disabled: !canSubmit || addStylist.isPending,
-            children: addStylist.isPending ? "Adding…" : "Add Stylist"
-          }
-        ),
-        addStylist.isError ? /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "p",
-          {
-            "data-ocid": "stylist.error_state",
-            className: "text-sm text-destructive",
-            children: "Could not add the stylist. Please try again."
-          }
-        ) : null
-      ] })
-    ] }) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { "data-ocid": "stylist_list", className: "flex flex-col gap-4", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "font-display text-xl font-semibold text-foreground", children: "Stylists" }),
-      isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "p",
+        disabled: isLoggingIn,
+        children: [
+          isLoggingIn ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, {}),
+          isLoggingIn ? "Opening secure workspace…" : "Sign in securely"
+        ]
+      }
+    ),
+    attempted && isLoginError ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "form-error", role: "alert", children: "Sign-in did not finish. Please try again." }) : null,
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "privacy-note", children: "Client and stylist details stay behind your organization’s sign-in." })
+  ] }) });
+}
+function RouteView({ dashboard }) {
+  const route = useRouteClient();
+  const assign2 = useAssignRequest();
+  const useBackup = useBackupRecommendation();
+  const [clientName, setClientName] = reactExports.useState("");
+  const [service, setService] = reactExports.useState("");
+  const [timing, setTiming] = reactExports.useState("now");
+  const [requestedTime, setRequestedTime] = reactExports.useState("");
+  const [specialtyMatters, setSpecialtyMatters] = reactExports.useState(false);
+  const [notes, setNotes] = reactExports.useState("");
+  const [result, setResult] = reactExports.useState(null);
+  const [notice, setNotice] = reactExports.useState("");
+  const [overrideId, setOverrideId] = reactExports.useState("");
+  const [overrideReason, setOverrideReason] = reactExports.useState("");
+  const services = reactExports.useMemo(
+    () => serviceNames(dashboard.stylists),
+    [dashboard.stylists]
+  );
+  function submit(event) {
+    event.preventDefault();
+    if (!clientName.trim() || !service.trim()) return;
+    setNotice("");
+    route.mutate(
+      {
+        idempotencyKey: crypto.randomUUID(),
+        clientName: clientName.trim(),
+        service: service.trim(),
+        timing,
+        requestedTime: timing === "now" ? "As soon as possible" : requestedTime.trim(),
+        specialtyMatters,
+        notes: notes.trim()
+      },
+      {
+        onSuccess: (next) => setResult(next),
+        onError: (error) => setNotice(mutationMessage(error))
+      }
+    );
+  }
+  function confirm() {
+    if (!(result == null ? void 0 : result.recommended)) return;
+    setNotice("");
+    assign2.mutate(
+      {
+        requestId: result.request.id,
+        stylistId: result.recommended.id,
+        revision: result.request.revision
+      },
+      {
+        onSuccess: () => {
+          var _a2;
+          setNotice(
+            `${(_a2 = result.recommended) == null ? void 0 : _a2.name} is confirmed for this client.`
+          );
+          setResult(null);
+          setClientName("");
+          setService("");
+          setRequestedTime("");
+          setNotes("");
+          setSpecialtyMatters(false);
+        },
+        onError: (error) => setNotice(mutationMessage(error))
+      }
+    );
+  }
+  function chooseBackup() {
+    if (!result) return;
+    useBackup.mutate(
+      {
+        requestId: result.request.id,
+        revision: result.request.revision,
+        reason: "Original recommendation was not available"
+      },
+      {
+        onSuccess: (next) => setResult(next),
+        onError: (error) => setNotice(mutationMessage(error))
+      }
+    );
+  }
+  function confirmOverride() {
+    if (!result || !overrideId || !overrideReason.trim()) return;
+    const stylist = dashboard.stylists.find(
+      (candidate) => candidate.id === BigInt(overrideId)
+    );
+    if (!stylist) return;
+    assign2.mutate(
+      {
+        requestId: result.request.id,
+        stylistId: stylist.id,
+        revision: result.request.revision,
+        note: `Manager override: ${overrideReason.trim()}`
+      },
+      {
+        onSuccess: () => {
+          setResult(null);
+          setClientName("");
+          setService("");
+          setNotes("");
+          setOverrideId("");
+          setOverrideReason("");
+        },
+        onError: (error) => setNotice(mutationMessage(error))
+      }
+    );
+  }
+  if (result) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "page-section", "aria-labelledby": "match-heading", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "button",
         {
-          "data-ocid": "stylist.loading_state",
-          className: "text-sm text-muted-foreground",
-          children: "Loading stylists…"
-        }
-      ) : stylists.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
-        "div",
-        {
-          "data-ocid": "stylist.empty_state",
-          className: "rounded-xl border border-dashed border-border px-6 py-12 text-center",
+          type: "button",
+          className: "back-link",
+          onClick: () => setResult(null),
           children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-display text-lg text-foreground", children: "No stylists yet" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mt-1 text-sm text-muted-foreground", children: "Add your first stylist above to get started." })
+            /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowLeft, { size: 18 }),
+            " Edit request"
           ]
         }
-      ) : /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "flex flex-col divide-y divide-border", children: stylists.map((stylist, index2) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
-        "li",
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "recommendation-card", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "recommendation-topline", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "pulse-dot" }),
+          " Recommended match"
+        ] }),
+        result.recommended ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "recommendation-person", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "avatar avatar-large", children: initials(result.recommended.name) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "eyebrow", children: "Next fair opportunity" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { id: "match-heading", children: result.recommended.name }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { children: [
+                result.request.service,
+                " · ",
+                result.request.requestedTime
+              ] })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "reason-box", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { size: 20, "aria-hidden": "true" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: result.request.explanation })
+          ] }),
+          result.recommended.phone ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "contact-line", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Phone, { size: 17 }),
+            " ",
+            result.recommended.phone
+          ] }) : null,
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "stacked-actions", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Button,
+              {
+                className: "h-14 text-base",
+                onClick: confirm,
+                disabled: assign2.isPending,
+                children: [
+                  assign2.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Check, {}),
+                  "Confirm with ",
+                  result.recommended.name
+                ]
+              }
+            ),
+            result.backup ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Button,
+              {
+                variant: "outline",
+                className: "h-12",
+                onClick: chooseBackup,
+                disabled: useBackup.isPending,
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(RotateCcw, {}),
+                  " Try backup: ",
+                  result.backup.name
+                ]
+              }
+            ) : null
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("details", { className: "override-panel", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("summary", { children: "Manager override" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Use for a client request or real-world exception. The reason is saved in History." }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { htmlFor: "override-stylist", children: "Assign another stylist" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "select",
+              {
+                id: "override-stylist",
+                value: overrideId,
+                onChange: (event) => setOverrideId(event.target.value),
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "", children: "Choose a stylist" }),
+                  dashboard.stylists.filter((stylist) => stylist.active).map((stylist) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "option",
+                    {
+                      value: stylist.id.toString(),
+                      children: stylist.name
+                    },
+                    stylist.id.toString()
+                  ))
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { htmlFor: "override-reason", children: "Reason" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                id: "override-reason",
+                value: overrideReason,
+                onChange: (event) => setOverrideReason(event.target.value),
+                placeholder: "e.g. Client specifically requested them"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Button,
+              {
+                type: "button",
+                variant: "outline",
+                onClick: confirmOverride,
+                disabled: !overrideId || !overrideReason.trim() || assign2.isPending,
+                children: "Confirm override"
+              }
+            )
+          ] })
+        ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "empty-panel", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "empty-icon", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CalendarClock, {}) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { id: "match-heading", children: "No match right now" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: result.request.explanation }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { variant: "outline", onClick: () => setResult(null), children: "Adjust request" })
+        ] })
+      ] }),
+      notice ? /* @__PURE__ */ jsxRuntimeExports.jsx("output", { className: "notice", children: notice }) : null
+    ] });
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "section",
+    {
+      className: "page-section route-grid",
+      "aria-labelledby": "route-heading",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "page-intro", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "eyebrow", children: "New client" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { id: "route-heading", children: "Find the right chair." }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Availability first. Service fit next. Fairness always." })
+        ] }),
+        dashboard.stylists.filter((stylist) => stylist.active).length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "setup-callout", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(UsersRound, {}),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "Add your team first" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Create at least one stylist profile before routing a client." })
+          ] })
+        ] }) : null,
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("form", { className: "surface-form", onSubmit: submit, children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field-grid", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { htmlFor: "client-name", children: "Client first name or reference" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Input,
+                {
+                  id: "client-name",
+                  value: clientName,
+                  onChange: (event) => setClientName(event.target.value),
+                  placeholder: "e.g. Maria",
+                  autoComplete: "off"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "field-help", children: "Use only what your team needs to identify the request." })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { htmlFor: "service", children: "Requested service" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Input,
+                {
+                  id: "service",
+                  list: "service-options",
+                  value: service,
+                  onChange: (event) => setService(event.target.value),
+                  placeholder: "e.g. Balayage",
+                  autoComplete: "off"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("datalist", { id: "service-options", children: services.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: item }, item)) })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("fieldset", { className: "field", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("legend", { children: "When do they need it?" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "segmented-control", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  className: cn(timing === "now" && "active"),
+                  onClick: () => setTiming("now"),
+                  "aria-pressed": timing === "now",
+                  children: "Now"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  className: cn(timing === "later" && "active"),
+                  onClick: () => setTiming("later"),
+                  "aria-pressed": timing === "later",
+                  children: "Later"
+                }
+              )
+            ] })
+          ] }),
+          timing === "later" ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { htmlFor: "requested-time", children: "Requested date and time" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                id: "requested-time",
+                type: "datetime-local",
+                value: requestedTime,
+                onChange: (event) => setRequestedTime(event.target.value),
+                required: true
+              }
+            )
+          ] }) : null,
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "switch-row", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { htmlFor: "specialty-matters", children: "This service needs a specialist" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Prioritize stylists who marked it as a service they love." })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Switch,
+              {
+                id: "specialty-matters",
+                checked: specialtyMatters,
+                onCheckedChange: setSpecialtyMatters
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { htmlFor: "route-notes", children: [
+              "Helpful notes ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Optional" })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Textarea,
+              {
+                id: "route-notes",
+                value: notes,
+                onChange: (event) => setNotes(event.target.value),
+                placeholder: "Timing flexibility or another important detail"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            Button,
+            {
+              className: "h-14 w-full text-base",
+              type: "submit",
+              disabled: !clientName.trim() || !service.trim() || route.isPending,
+              children: [
+                route.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, {}),
+                route.isPending ? "Checking the rotation…" : "Find best match"
+              ]
+            }
+          ),
+          notice ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "form-error", role: "alert", children: notice }) : null
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "trust-strip", "aria-label": "How recommendations work", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "1" }),
+            " Available"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronRight, {}),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "2" }),
+            " Right service"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronRight, {}),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "3" }),
+            " Fairest turn"
+          ] })
+        ] })
+      ]
+    }
+  );
+}
+function TodayView({ dashboard }) {
+  const updateStatus = useSetRequestStatus();
+  const active = [...dashboard.requests].filter((request2) => !["completed", "cancelled"].includes(request2.status)).reverse();
+  const confirmed = active.filter(
+    (request2) => request2.status === "confirmed"
+  ).length;
+  function setStatus(request2, status, reason = "") {
+    updateStatus.mutate({
+      requestId: request2.id,
+      status,
+      revision: request2.revision,
+      reason
+    });
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "page-section", "aria-labelledby": "today-heading", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "page-intro intro-row", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "eyebrow", children: "Live desk" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { id: "today-heading", children: "Today" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Every open handoff in one calm view." })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "count-card", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: confirmed }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "confirmed" })
+      ] })
+    ] }),
+    active.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "empty-panel bordered", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "empty-icon", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ClipboardList, {}) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "Nothing waiting" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "New recommendations and confirmed handoffs will appear here." })
+    ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "request-list", children: active.map((request2) => {
+      const assigned = getStylist(
+        dashboard.stylists,
+        request2.assignedStylistId
+      );
+      const recommended = getStylist(
+        dashboard.stylists,
+        request2.recommendedStylistId
+      );
+      const person = assigned ?? recommended;
+      return /* @__PURE__ */ jsxRuntimeExports.jsxs("article", { className: "request-card", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "request-card-top", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "span",
+            {
+              className: cn("status-pill", `status-${request2.status}`),
+              children: STATUS_LABELS[request2.status] ?? request2.status
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("time", { children: fromNanoseconds(request2.createdAt) })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: request2.clientName || "Unnamed client" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "request-meta", children: [
+          request2.service,
+          " · ",
+          request2.requestedTime
+        ] }),
+        person ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "person-row", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "avatar", children: initials(person.name) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: assigned ? "Assigned to" : "Recommended" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: person.name })
+          ] })
+        ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "attention-copy", children: "No eligible stylist was found." }),
+        request2.notes ? /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "request-note", children: [
+          "“",
+          request2.notes,
+          "”"
+        ] }) : null,
+        request2.status === "confirmed" ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "inline-actions", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            Button,
+            {
+              size: "sm",
+              onClick: () => setStatus(request2, "completed"),
+              disabled: updateStatus.isPending,
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Check, {}),
+                " Complete"
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            Button,
+            {
+              size: "sm",
+              variant: "ghost",
+              onClick: () => setStatus(request2, "cancelled", "client_cancelled"),
+              disabled: updateStatus.isPending,
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(X, {}),
+                " Client canceled"
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Button,
+            {
+              size: "sm",
+              variant: "ghost",
+              onClick: () => setStatus(request2, "cancelled", "stylist_cancelled"),
+              disabled: updateStatus.isPending,
+              children: "Stylist canceled"
+            }
+          )
+        ] }) : null
+      ] }, request2.id.toString());
+    }) })
+  ] });
+}
+function splitServices(value, level) {
+  return value.split(",").map((item) => item.trim()).filter(Boolean).map((name) => ({ name, level }));
+}
+function StylistForm({
+  stylist,
+  onDone
+}) {
+  const create = useCreateStylist();
+  const update = useUpdateStylist();
+  const [name, setName] = reactExports.useState((stylist == null ? void 0 : stylist.name) ?? "");
+  const [phone, setPhone] = reactExports.useState((stylist == null ? void 0 : stylist.phone) ?? "");
+  const [loves, setLoves] = reactExports.useState(
+    (stylist == null ? void 0 : stylist.services.filter((item) => item.level === "love").map((item) => item.name).join(", ")) ?? ""
+  );
+  const [performs, setPerforms] = reactExports.useState(
+    (stylist == null ? void 0 : stylist.services.filter((item) => item.level === "perform").map((item) => item.name).join(", ")) ?? ""
+  );
+  const [avoids, setAvoids] = reactExports.useState(
+    (stylist == null ? void 0 : stylist.services.filter((item) => item.level === "avoid").map((item) => item.name).join(", ")) ?? ""
+  );
+  const [availabilityStatus, setAvailabilityStatus] = reactExports.useState(
+    (stylist == null ? void 0 : stylist.availabilityStatus) ?? "now"
+  );
+  const [availabilityNote, setAvailabilityNote] = reactExports.useState(
+    (stylist == null ? void 0 : stylist.availabilityNote) ?? ""
+  );
+  const [acceptsNewClients, setAcceptsNewClients] = reactExports.useState(
+    (stylist == null ? void 0 : stylist.acceptsNewClients) ?? true
+  );
+  const [error, setError] = reactExports.useState("");
+  const pending = create.isPending || update.isPending;
+  function submit(event) {
+    event.preventDefault();
+    const services = [
+      ...splitServices(loves, "love"),
+      ...splitServices(performs, "perform"),
+      ...splitServices(avoids, "avoid")
+    ];
+    if (!name.trim() || services.filter((item) => item.level !== "avoid").length === 0)
+      return;
+    const input = {
+      name: name.trim(),
+      phone: phone.trim(),
+      services,
+      availabilityStatus,
+      availabilityNote: availabilityNote.trim(),
+      acceptsNewClients,
+      availabilityExpiresAt: availabilityStatus === "unavailable" ? 0n : expiryInHours(12)
+    };
+    const callbacks = {
+      onSuccess: onDone,
+      onError: (nextError) => setError(mutationMessage(nextError))
+    };
+    if (stylist)
+      update.mutate(
+        { id: stylist.id, input, revision: stylist.revision },
+        callbacks
+      );
+    else create.mutate(input, callbacks);
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "page-section", "aria-labelledby": "stylist-form-heading", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { type: "button", className: "back-link", onClick: onDone, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowLeft, { size: 18 }),
+      " Back to stylists"
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "page-intro", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "eyebrow", children: "Team profile" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { id: "stylist-form-heading", children: stylist ? `Edit ${stylist.name}` : "Add a stylist" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Describe what they love, what they perform, and when they can take someone new." })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("form", { className: "surface-form", onSubmit: submit, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field-grid", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { htmlFor: "stylist-name", children: "Name" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Input,
+            {
+              id: "stylist-name",
+              value: name,
+              onChange: (event) => setName(event.target.value),
+              placeholder: "Full name"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { htmlFor: "stylist-phone", children: [
+            "Business phone ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Optional" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Input,
+            {
+              id: "stylist-phone",
+              type: "tel",
+              value: phone,
+              onChange: (event) => setPhone(event.target.value),
+              placeholder: "(555) 555-0123"
+            }
+          )
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "service-fields", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field service-love", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { htmlFor: "loves", children: "Services they love" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Textarea,
+            {
+              id: "loves",
+              value: loves,
+              onChange: (event) => setLoves(event.target.value),
+              placeholder: "Balayage, vivid color"
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "field-help", children: "Separate services with commas." })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { htmlFor: "performs", children: "Services they perform" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Textarea,
+            {
+              id: "performs",
+              value: performs,
+              onChange: (event) => setPerforms(event.target.value),
+              placeholder: "Haircuts, blowouts, highlights"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field service-avoid", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { htmlFor: "avoids", children: [
+            "Services they don’t perform ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Optional" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Textarea,
+            {
+              id: "avoids",
+              value: avoids,
+              onChange: (event) => setAvoids(event.target.value),
+              placeholder: "Extensions"
+            }
+          )
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("fieldset", { className: "field", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("legend", { children: "Current availability" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "three-way-control", children: [
+          { value: "now", label: "Available now" },
+          { value: "later", label: "Available later" },
+          { value: "unavailable", label: "Unavailable" }
+        ].map((option) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            type: "button",
+            className: cn(availabilityStatus === option.value && "active"),
+            onClick: () => setAvailabilityStatus(option.value),
+            "aria-pressed": availabilityStatus === option.value,
+            children: option.label
+          },
+          option.value
+        )) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "field-help", children: "Available statuses automatically expire after 12 hours to prevent stale assignments." })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { htmlFor: "availability-note", children: "Hours or timing note" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          Input,
+          {
+            id: "availability-note",
+            value: availabilityNote,
+            onChange: (event) => setAvailabilityNote(event.target.value),
+            placeholder: "e.g. Today until 6, Tue–Fri 10–4"
+          }
+        )
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "switch-row", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { htmlFor: "new-clients", children: "Accepting new clients" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Turn this off without archiving the stylist." })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          Switch,
+          {
+            id: "new-clients",
+            checked: acceptsNewClients,
+            onCheckedChange: setAcceptsNewClients
+          }
+        )
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        Button,
         {
-          "data-ocid": `stylist.item.${index2 + 1}`,
-          className: "flex items-baseline justify-between gap-4 py-4",
+          className: "h-14 w-full text-base",
+          type: "submit",
+          disabled: !name.trim() || !loves.trim() && !performs.trim() || pending,
           children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-display text-lg font-medium text-foreground", children: stylist.name }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-right text-sm text-muted-foreground", children: [
-              stylist.specialty,
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mx-2 text-border", children: "·" }),
-              stylist.availability
+            pending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Check, {}),
+            pending ? "Saving securely…" : "Save stylist"
+          ]
+        }
+      ),
+      error ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "form-error", role: "alert", children: error }) : null
+    ] })
+  ] });
+}
+function StylistsView({ dashboard }) {
+  const update = useUpdateStylist();
+  const setActive = useSetStylistActive();
+  const [editing, setEditing] = reactExports.useState(null);
+  const stylists = [...dashboard.stylists].sort(
+    (a2, b2) => Number(b2.active) - Number(a2.active) || a2.name.localeCompare(b2.name)
+  );
+  if (editing)
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(
+      StylistForm,
+      {
+        stylist: editing === "new" ? void 0 : editing,
+        onDone: () => setEditing(null)
+      }
+    );
+  function quickAvailability(stylist, availabilityStatus) {
+    const input = {
+      name: stylist.name,
+      phone: stylist.phone,
+      services: stylist.services,
+      availabilityStatus,
+      availabilityNote: stylist.availabilityNote,
+      availabilityExpiresAt: availabilityStatus === "unavailable" ? 0n : expiryInHours(12),
+      acceptsNewClients: stylist.acceptsNewClients
+    };
+    update.mutate({ id: stylist.id, input, revision: stylist.revision });
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "page-section", "aria-labelledby": "stylists-heading", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "page-intro intro-row", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "eyebrow", children: "Your team" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { id: "stylists-heading", children: "Stylists" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Keep service fit and availability honest." })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Button, { onClick: () => setEditing("new"), children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, {}),
+        " Add stylist"
+      ] })
+    ] }),
+    stylists.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "empty-panel bordered", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "empty-icon", children: /* @__PURE__ */ jsxRuntimeExports.jsx(UserRound, {}) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "Build your team" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Add each stylist’s services and current availability." }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Button, { onClick: () => setEditing("new"), children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, {}),
+        " Add first stylist"
+      ] })
+    ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "stylist-list", children: stylists.map((stylist) => {
+      const loves = stylist.services.filter(
+        (item) => item.level === "love"
+      );
+      const rate = stylist.eligibleOpportunities === 0n ? "New" : `${Math.round(Number(stylist.assignments * 100n / stylist.eligibleOpportunities))}%`;
+      return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "article",
+        {
+          className: cn("stylist-card", !stylist.active && "archived"),
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "stylist-main", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "avatar avatar-large", children: initials(stylist.name) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "stylist-title", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: stylist.name }),
+                  !stylist.active ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "archive-label", children: "Archived" }) : null
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: loves.length ? `Loves ${loves.map((item) => item.name).join(", ")}` : "No specialties noted" })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  className: "edit-link",
+                  onClick: () => setEditing(stylist),
+                  children: "Edit"
+                }
+              )
+            ] }),
+            stylist.active ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "div",
+              {
+                className: "quick-status",
+                "aria-label": `${stylist.name} availability`,
+                children: [
+                  { value: "now", label: "Now" },
+                  { value: "later", label: "Later" },
+                  { value: "unavailable", label: "Off" }
+                ].map((option) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "button",
+                  {
+                    type: "button",
+                    className: cn(
+                      stylist.availabilityStatus === option.value && "active"
+                    ),
+                    "aria-pressed": stylist.availabilityStatus === option.value,
+                    onClick: () => quickAvailability(stylist, option.value),
+                    disabled: update.isPending,
+                    children: option.label
+                  },
+                  option.value
+                ))
+              }
+            ) : null,
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "stylist-details", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: stylist.assignments.toString() }),
+                " new clients"
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: rate }),
+                " of eligible turns"
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: stylist.declines.toString() }),
+                " passes"
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "stylist-footer", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: stylist.availabilityNote || "No hours note" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => setActive.mutate({
+                    id: stylist.id,
+                    active: !stylist.active,
+                    revision: stylist.revision
+                  }),
+                  children: stylist.active ? "Archive" : "Restore"
+                }
+              )
             ] })
           ]
         },
-        `${stylist.name}-${stylist.specialty}-${stylist.availability}`
-      )) })
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("footer", { className: "mt-auto pt-8 text-center text-xs text-muted-foreground", children: [
-      "© ",
-      (/* @__PURE__ */ new Date()).getFullYear(),
-      ". Built with love using",
-      " ",
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "a",
+        stylist.id.toString()
+      );
+    }) })
+  ] });
+}
+function HistoryView({ dashboard }) {
+  const exportBackup = useExportBackup();
+  const [exported, setExported] = reactExports.useState(false);
+  const events2 = [...dashboard.audit].reverse();
+  function downloadBackup() {
+    exportBackup.mutate(void 0, {
+      onSuccess: (backup) => {
+        const blob = new Blob([JSON.stringify(backup, null, 2)], {
+          type: "application/json"
+        });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = `fairchair-backup-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}.json`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+        setExported(true);
+      }
+    });
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "page-section", "aria-labelledby": "history-heading", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "page-intro intro-row", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "eyebrow", children: "Accountability" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { id: "history-heading", children: "History" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "A durable record of recommendations and decisions." })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        Button,
         {
-          href: `https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`,
-          className: "underline underline-offset-2",
-          children: "caffeine.ai"
+          variant: "outline",
+          onClick: downloadBackup,
+          disabled: exportBackup.isPending,
+          children: [
+            exportBackup.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Download, {}),
+            " ",
+            "Export backup"
+          ]
+        }
+      )
+    ] }),
+    exported ? /* @__PURE__ */ jsxRuntimeExports.jsxs("output", { className: "notice", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, {}),
+      " Backup downloaded successfully."
+    ] }) : null,
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "history-note", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, {}),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "Nothing important disappears." }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("br", {}),
+        "Changes are recorded as events so the team can understand what happened later."
+      ] })
+    ] }),
+    events2.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "empty-panel bordered", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "empty-icon", children: /* @__PURE__ */ jsxRuntimeExports.jsx(History, {}) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "No activity yet" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Your first stylist or routed client will start the record." })
+    ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("ol", { className: "timeline", children: events2.map((event) => /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "timeline-dot" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "timeline-heading", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: event.kind.split(".").slice(-1)[0].replace(/^./, (letter) => letter.toUpperCase()) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("time", { children: fromNanoseconds(event.createdAt) })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: event.detail })
+      ] })
+    ] }, event.id.toString())) })
+  ] });
+}
+function Workspace() {
+  const { clear } = useInternetIdentity();
+  const initialize = useInitializeAccess();
+  const [initialized, setInitialized] = reactExports.useState(false);
+  const [view, setView] = reactExports.useState("route");
+  const directory = useDirectory(initialized);
+  reactExports.useEffect(() => {
+    if (!initialized && !initialize.isPending && !initialize.isError) {
+      initialize.mutate(void 0, {
+        onSuccess: () => setInitialized(true)
+      });
+    }
+  }, [initialize, initialized]);
+  if (!initialized || directory.isLoading) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs("main", { className: "loading-screen", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "animate-spin" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Opening your secure workspace…" })
+    ] });
+  }
+  if (initialize.isError || directory.isError || !directory.data) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("main", { className: "login-shell", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "login-card", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "brand-mark", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, {}) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "eyebrow", children: "Access protected" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { children: "This workspace is private." }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "login-copy", children: "The owner can grant team access when role management is enabled." }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Button, { variant: "outline", className: "h-12 w-full", onClick: clear, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(LogOut, {}),
+        " Sign out"
+      ] })
+    ] }) });
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "app-shell", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { className: "app-header", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "button",
+        {
+          className: "wordmark",
+          type: "button",
+          onClick: () => setView("route"),
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "brand-mark brand-mark-small", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Scissors, {}) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "FairChair" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("small", { children: "New client rotation" })
+            ] })
+          ]
         }
       ),
-      "."
-    ] })
-  ] }) });
+      /* @__PURE__ */ jsxRuntimeExports.jsx("nav", { className: "desktop-nav", "aria-label": "Main navigation", children: NAV_ITEMS.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "button",
+        {
+          type: "button",
+          className: cn(view === item.id && "active"),
+          onClick: () => setView(item.id),
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(item.icon, {}),
+            item.label
+          ]
+        },
+        item.id
+      )) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          type: "button",
+          className: "sign-out",
+          onClick: clear,
+          "aria-label": "Sign out",
+          children: /* @__PURE__ */ jsxRuntimeExports.jsx(LogOut, {})
+        }
+      )
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("main", { className: "content-shell", children: [
+      view === "route" ? /* @__PURE__ */ jsxRuntimeExports.jsx(RouteView, { dashboard: directory.data }) : null,
+      view === "today" ? /* @__PURE__ */ jsxRuntimeExports.jsx(TodayView, { dashboard: directory.data }) : null,
+      view === "stylists" ? /* @__PURE__ */ jsxRuntimeExports.jsx(StylistsView, { dashboard: directory.data }) : null,
+      view === "history" ? /* @__PURE__ */ jsxRuntimeExports.jsx(HistoryView, { dashboard: directory.data }) : null
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("nav", { className: "mobile-nav", "aria-label": "Main navigation", children: NAV_ITEMS.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "button",
+      {
+        type: "button",
+        className: cn(view === item.id && "active"),
+        onClick: () => setView(item.id),
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(item.icon, {}),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: item.label })
+        ]
+      },
+      item.id
+    )) })
+  ] });
+}
+function App() {
+  const { isAuthenticated, isInitializing } = useInternetIdentity();
+  if (isInitializing)
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs("main", { className: "loading-screen", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "animate-spin" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Preparing secure sign-in…" })
+    ] });
+  return isAuthenticated ? /* @__PURE__ */ jsxRuntimeExports.jsx(Workspace, {}) : /* @__PURE__ */ jsxRuntimeExports.jsx(LoginScreen, {});
 }
 BigInt.prototype.toJSON = function() {
   return this.toString();
 };
 const queryClient = new QueryClient();
 ReactDOM.createRoot(document.getElementById("root")).render(
-  /* @__PURE__ */ jsxRuntimeExports.jsx(QueryClientProvider, { client: queryClient, children: /* @__PURE__ */ jsxRuntimeExports.jsx(InternetIdentityProvider, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(App, {}) }) })
+  /* @__PURE__ */ jsxRuntimeExports.jsx(QueryClientProvider, { client: queryClient, children: /* @__PURE__ */ jsxRuntimeExports.jsx(InternetIdentityProvider, { withAttributes: false, children: /* @__PURE__ */ jsxRuntimeExports.jsx(App, {}) }) })
 );
