@@ -1,0 +1,15 @@
+{
+  "overview": "A minimal stylist directory where you can add a stylist with name, specialty, and availability, and see the list.",
+  "features": [
+    "Add a stylist with name, specialty, and availability",
+    "See a list of all added stylists",
+    "Placeholder filter options for specialty, availability, and fairness"
+  ],
+  "category": "productivity",
+  "tags": [
+    "stylist",
+    "directory",
+    "productivity"
+  ],
+  "last_updated": "2026-09-05T18:18:55.039Z"
+}
