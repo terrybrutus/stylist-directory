@@ -37570,14 +37570,14 @@ const __iconNode = [
 ];
 const X = createLucideIcon("x", __iconNode);
 const NAV_ITEMS = [
-  { id: "route", label: "Route", icon: Sparkles },
-  { id: "today", label: "Today", icon: CalendarClock },
+  { id: "route", label: "Rotation", icon: Sparkles },
+  { id: "today", label: "Booked", icon: CalendarClock },
   { id: "stylists", label: "Stylists", icon: UsersRound },
   { id: "history", label: "History", icon: History }
 ];
 const STATUS_LABELS = {
   suggested: "Ready to assign",
-  confirmed: "Confirmed",
+  confirmed: "Booked",
   completed: "Completed",
   cancelled: "Cancelled",
   unmatched: "Needs attention"
@@ -37610,6 +37610,22 @@ function getStylist(stylists, id) {
   if (id === void 0) return void 0;
   return stylists.find((stylist) => stylist.id === id);
 }
+function currentRotation(stylists) {
+  const now2 = BigInt(Date.now()) * 1000000n;
+  return stylists.filter(
+    (stylist) => stylist.active && stylist.acceptsNewClients && stylist.availabilityStatus !== "unavailable" && (stylist.availabilityExpiresAt === 0n || stylist.availabilityExpiresAt > now2)
+  ).sort((left, right) => {
+    const leftDenominator = left.eligibleOpportunities === 0n ? 1n : left.eligibleOpportunities;
+    const rightDenominator = right.eligibleOpportunities === 0n ? 1n : right.eligibleOpportunities;
+    const leftRate = left.assignments * rightDenominator;
+    const rightRate = right.assignments * leftDenominator;
+    if (leftRate !== rightRate) return leftRate < rightRate ? -1 : 1;
+    if (left.lastAssignedAt !== right.lastAssignedAt) {
+      return left.lastAssignedAt < right.lastAssignedAt ? -1 : 1;
+    }
+    return left.id < right.id ? -1 : 1;
+  });
+}
 function mutationMessage(error) {
   const message = error instanceof Error ? error.message : String(error);
   if (message.toLowerCase().includes("unauthorized")) {
@@ -37626,8 +37642,8 @@ function LoginScreen() {
   return /* @__PURE__ */ jsxRuntimeExports.jsx("main", { className: "login-shell", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "login-card", "aria-labelledby": "login-title", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "brand-mark", "aria-hidden": "true", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Scissors, { size: 25, strokeWidth: 1.8 }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "eyebrow", children: "Private workspace" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { id: "login-title", children: "A fair chair, every time." }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "login-copy", children: "Route new clients by real availability, service fit, and a transparent rotation your team can trust." }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { id: "login-title", children: "Know who’s up next." }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "login-copy", children: "A private stylist rotation for your salon team—based on real availability, service fit, and fairness." }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs(
       Button,
       {
@@ -37644,7 +37660,7 @@ function LoginScreen() {
       }
     ),
     attempted && isLoginError ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "form-error", role: "alert", children: "Sign-in did not finish. Please try again." }) : null,
-    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "privacy-note", children: "Client and stylist details stay behind your organization’s sign-in." })
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "privacy-note", children: "For salon staff only. Clients do not book through this app." })
   ] }) });
 }
 function RouteView({ dashboard }) {
@@ -37665,14 +37681,18 @@ function RouteView({ dashboard }) {
     () => serviceNames(dashboard.stylists),
     [dashboard.stylists]
   );
+  const rotation = reactExports.useMemo(
+    () => currentRotation(dashboard.stylists),
+    [dashboard.stylists]
+  );
   function submit(event) {
     event.preventDefault();
-    if (!clientName.trim() || !service.trim()) return;
+    if (!service.trim()) return;
     setNotice("");
     route.mutate(
       {
         idempotencyKey: crypto.randomUUID(),
-        clientName: clientName.trim(),
+        clientName: clientName.trim() || "New client",
         service: service.trim(),
         timing,
         requestedTime: timing === "now" ? "As soon as possible" : requestedTime.trim(),
@@ -37697,9 +37717,7 @@ function RouteView({ dashboard }) {
       {
         onSuccess: () => {
           var _a2;
-          setNotice(
-            `${(_a2 = result.recommended) == null ? void 0 : _a2.name} is confirmed for this client.`
-          );
+          setNotice(`${(_a2 = result.recommended) == null ? void 0 : _a2.name} is marked booked.`);
           setResult(null);
           setClientName("");
           setService("");
@@ -37768,7 +37786,7 @@ function RouteView({ dashboard }) {
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "recommendation-card", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "recommendation-topline", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "pulse-dot" }),
-          " Recommended match"
+          " Up next for this service"
         ] }),
         result.recommended ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "recommendation-person", children: [
@@ -37801,7 +37819,7 @@ function RouteView({ dashboard }) {
                 disabled: assign2.isPending,
                 children: [
                   assign2.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Check, {}),
-                  "Confirm with ",
+                  "Mark booked with ",
                   result.recommended.name
                 ]
               }
@@ -37882,10 +37900,55 @@ function RouteView({ dashboard }) {
       "aria-labelledby": "route-heading",
       children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "page-intro", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "eyebrow", children: "New client" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { id: "route-heading", children: "Find the right chair." }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Availability first. Service fit next. Fairness always." })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "eyebrow", children: "Stylist rotation" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { id: "route-heading", children: "Who’s up next?" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "See the live order, then check the service before marking someone booked." })
         ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "section",
+          {
+            className: "rotation-board",
+            "aria-labelledby": "rotation-board-heading",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rotation-board-header", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "eyebrow", children: "General rotation" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { id: "rotation-board-heading", children: rotation[0] ? `${rotation[0].name} is up next` : "No one is available" })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: cn("availability-chip", rotation[0] && "available"), children: rotation[0] ? "Live" : "Check team" })
+              ] }),
+              rotation[0] ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rotation-lead", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "avatar avatar-large", children: initials(rotation[0].name) }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: rotation[0].name }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                      rotation[0].availabilityStatus === "now" ? "Available now" : "Available later",
+                      rotation[0].availabilityNote ? ` · ${rotation[0].availabilityNote}` : ""
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("small", { children: [
+                    rotation[0].assignments.toString(),
+                    " booked"
+                  ] })
+                ] }),
+                rotation.length > 1 ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "ol",
+                  {
+                    className: "rotation-queue",
+                    "aria-label": "Next stylists in rotation",
+                    children: rotation.slice(1, 4).map((stylist, index2) => /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: index2 + 2 }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: stylist.name }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("small", { children: stylist.availabilityStatus === "now" ? "Now" : "Later" })
+                    ] }, stylist.id.toString()))
+                  }
+                ) : null,
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "rotation-caveat", children: "The order may change when a requested service needs a specific stylist." })
+              ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "rotation-empty", children: "Update a stylist to Available now or Available later to start the rotation." })
+            ]
+          }
+        ),
         dashboard.stylists.filter((stylist) => stylist.active).length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "setup-callout", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(UsersRound, {}),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
@@ -37894,9 +37957,17 @@ function RouteView({ dashboard }) {
           ] })
         ] }) : null,
         /* @__PURE__ */ jsxRuntimeExports.jsxs("form", { className: "surface-form", onSubmit: submit, children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "form-heading", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "eyebrow", children: "Specific opportunity" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "Check the service fit" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "The client never sees this form. It helps staff confirm the fair next stylist." })
+          ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field-grid", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { htmlFor: "client-name", children: "Client first name or reference" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { htmlFor: "client-name", children: [
+                "Client reference ",
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Optional" })
+              ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsx(
                 Input,
                 {
@@ -37907,7 +37978,7 @@ function RouteView({ dashboard }) {
                   autoComplete: "off"
                 }
               ),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "field-help", children: "Use only what your team needs to identify the request." })
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "field-help", children: "A first name or short note for the staff handoff." })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { htmlFor: "service", children: "Requested service" }),
@@ -37997,10 +38068,10 @@ function RouteView({ dashboard }) {
             {
               className: "h-14 w-full text-base",
               type: "submit",
-              disabled: !clientName.trim() || !service.trim() || route.isPending,
+              disabled: !service.trim() || route.isPending,
               children: [
                 route.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, {}),
-                route.isPending ? "Checking the rotation…" : "Find best match"
+                route.isPending ? "Checking the rotation…" : "Check who’s up next"
               ]
             }
           ),
@@ -38043,19 +38114,19 @@ function TodayView({ dashboard }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "page-section", "aria-labelledby": "today-heading", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "page-intro intro-row", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "eyebrow", children: "Live desk" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { id: "today-heading", children: "Today" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Every open handoff in one calm view." })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "eyebrow", children: "Stylist status" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { id: "today-heading", children: "Booked" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "See who received a client and what still needs attention." })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "count-card", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: confirmed }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "confirmed" })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "booked" })
       ] })
     ] }),
     active.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "empty-panel bordered", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "empty-icon", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ClipboardList, {}) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "Nothing waiting" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "New recommendations and confirmed handoffs will appear here." })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "No bookings recorded" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Once a stylist is marked booked, the assignment appears here." })
     ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "request-list", children: active.map((request2) => {
       const assigned = getStylist(
         dashboard.stylists,
@@ -38086,7 +38157,7 @@ function TodayView({ dashboard }) {
         person ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "person-row", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "avatar", children: initials(person.name) }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: assigned ? "Assigned to" : "Recommended" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: assigned ? "Booked with" : "Up next" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: person.name })
           ] })
         ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "attention-copy", children: "No eligible stylist was found." }),
@@ -38606,7 +38677,7 @@ function Workspace() {
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "brand-mark brand-mark-small", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Scissors, {}) }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "FairChair" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("small", { children: "New client rotation" })
+              /* @__PURE__ */ jsxRuntimeExports.jsx("small", { children: "Stylist rotation" })
             ] })
           ]
         }

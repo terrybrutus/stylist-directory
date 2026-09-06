@@ -122,11 +122,11 @@ describe("FairChair", () => {
   it("opens the secure routing workspace", async () => {
     renderApp();
     expect(
-      await screen.findByRole("heading", { name: "Find the right chair." }),
+      await screen.findByRole("heading", { name: "Who’s up next?" }),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Availability first. Service fit next. Fairness always.",
+        "See the live order, then check the service before marking someone booked.",
       ),
     ).toBeInTheDocument();
   });
@@ -154,7 +154,7 @@ describe("FairChair", () => {
     );
 
     expect(
-      await screen.findByRole("heading", { name: "Find the right chair." }),
+      await screen.findByRole("heading", { name: "Who’s up next?" }),
     ).toBeInTheDocument();
     expect(mockActor._initialize_access_control).toHaveBeenCalledOnce();
   });
@@ -162,7 +162,7 @@ describe("FairChair", () => {
   it("adds a complete stylist profile", async () => {
     const user = userEvent.setup();
     renderApp();
-    await screen.findByRole("heading", { name: "Find the right chair." });
+    await screen.findByRole("heading", { name: "Who’s up next?" });
     await user.click(screen.getAllByRole("button", { name: "Stylists" })[0]);
     await user.click(screen.getByRole("button", { name: "Add first stylist" }));
     await user.type(screen.getByLabelText("Name"), "Ally Rivera");
@@ -202,22 +202,26 @@ describe("FairChair", () => {
     );
     const user = userEvent.setup();
     renderApp();
-    await screen.findByRole("heading", { name: "Find the right chair." });
-    await user.type(
-      screen.getByLabelText("Client first name or reference"),
-      "Maria",
-    );
+    await screen.findByRole("heading", { name: "Who’s up next?" });
+    expect(
+      screen.getByRole("heading", { name: "Ally Rivera is up next" }),
+    ).toBeInTheDocument();
     await user.type(screen.getByLabelText("Requested service"), "Balayage");
-    await user.click(screen.getByRole("button", { name: "Find best match" }));
+    await user.click(
+      screen.getByRole("button", { name: "Check who’s up next" }),
+    );
 
     expect(
       await screen.findByRole("heading", { name: "Ally Rivera" }),
     ).toBeInTheDocument();
+    expect(mockActor.routeClient).toHaveBeenCalledWith(
+      expect.objectContaining({ clientName: "New client" }),
+    );
     expect(
       screen.getByText(/due the next comparable new-client opportunity/),
     ).toBeInTheDocument();
     await user.click(
-      screen.getByRole("button", { name: "Confirm with Ally Rivera" }),
+      screen.getByRole("button", { name: "Mark booked with Ally Rivera" }),
     );
     await waitFor(() => expect(mockActor.assignRequest).toHaveBeenCalledOnce());
   });

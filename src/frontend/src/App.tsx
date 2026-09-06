@@ -50,15 +50,15 @@ import { useEffect, useMemo, useState } from "react";
 type View = "route" | "today" | "stylists" | "history";
 
 const NAV_ITEMS: Array<{ id: View; label: string; icon: typeof Sparkles }> = [
-  { id: "route", label: "Route", icon: Sparkles },
-  { id: "today", label: "Today", icon: CalendarClock },
+  { id: "route", label: "Rotation", icon: Sparkles },
+  { id: "today", label: "Booked", icon: CalendarClock },
   { id: "stylists", label: "Stylists", icon: UsersRound },
   { id: "history", label: "History", icon: History },
 ];
 
 const STATUS_LABELS: Record<string, string> = {
   suggested: "Ready to assign",
-  confirmed: "Confirmed",
+  confirmed: "Booked",
   completed: "Completed",
   cancelled: "Cancelled",
   unmatched: "Needs attention",
@@ -107,6 +107,32 @@ function getStylist(stylists: Stylist[], id?: bigint) {
   return stylists.find((stylist) => stylist.id === id);
 }
 
+function currentRotation(stylists: Stylist[]) {
+  const now = BigInt(Date.now()) * 1_000_000n;
+  return stylists
+    .filter(
+      (stylist) =>
+        stylist.active &&
+        stylist.acceptsNewClients &&
+        stylist.availabilityStatus !== "unavailable" &&
+        (stylist.availabilityExpiresAt === 0n ||
+          stylist.availabilityExpiresAt > now),
+    )
+    .sort((left, right) => {
+      const leftDenominator =
+        left.eligibleOpportunities === 0n ? 1n : left.eligibleOpportunities;
+      const rightDenominator =
+        right.eligibleOpportunities === 0n ? 1n : right.eligibleOpportunities;
+      const leftRate = left.assignments * rightDenominator;
+      const rightRate = right.assignments * leftDenominator;
+      if (leftRate !== rightRate) return leftRate < rightRate ? -1 : 1;
+      if (left.lastAssignedAt !== right.lastAssignedAt) {
+        return left.lastAssignedAt < right.lastAssignedAt ? -1 : 1;
+      }
+      return left.id < right.id ? -1 : 1;
+    });
+}
+
 function mutationMessage(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   if (message.toLowerCase().includes("unauthorized")) {
@@ -131,10 +157,10 @@ function LoginScreen() {
           <Scissors size={25} strokeWidth={1.8} />
         </div>
         <p className="eyebrow">Private workspace</p>
-        <h1 id="login-title">A fair chair, every time.</h1>
+        <h1 id="login-title">Know who’s up next.</h1>
         <p className="login-copy">
-          Route new clients by real availability, service fit, and a transparent
-          rotation your team can trust.
+          A private stylist rotation for your salon team—based on real
+          availability, service fit, and fairness.
         </p>
         <Button
           className="h-14 w-full text-base"
@@ -157,7 +183,7 @@ function LoginScreen() {
           </p>
         ) : null}
         <p className="privacy-note">
-          Client and stylist details stay behind your organization’s sign-in.
+          For salon staff only. Clients do not book through this app.
         </p>
       </section>
     </main>
@@ -182,15 +208,19 @@ function RouteView({ dashboard }: { dashboard: Dashboard }) {
     () => serviceNames(dashboard.stylists),
     [dashboard.stylists],
   );
+  const rotation = useMemo(
+    () => currentRotation(dashboard.stylists),
+    [dashboard.stylists],
+  );
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (!clientName.trim() || !service.trim()) return;
+    if (!service.trim()) return;
     setNotice("");
     route.mutate(
       {
         idempotencyKey: crypto.randomUUID(),
-        clientName: clientName.trim(),
+        clientName: clientName.trim() || "New client",
         service: service.trim(),
         timing,
         requestedTime:
@@ -216,9 +246,7 @@ function RouteView({ dashboard }: { dashboard: Dashboard }) {
       },
       {
         onSuccess: () => {
-          setNotice(
-            `${result.recommended?.name} is confirmed for this client.`,
-          );
+          setNotice(`${result.recommended?.name} is marked booked.`);
           setResult(null);
           setClientName("");
           setService("");
@@ -285,7 +313,7 @@ function RouteView({ dashboard }: { dashboard: Dashboard }) {
         </button>
         <div className="recommendation-card">
           <div className="recommendation-topline">
-            <span className="pulse-dot" /> Recommended match
+            <span className="pulse-dot" /> Up next for this service
           </div>
           {result.recommended ? (
             <>
@@ -321,7 +349,7 @@ function RouteView({ dashboard }: { dashboard: Dashboard }) {
                   ) : (
                     <Check />
                   )}
-                  Confirm with {result.recommended.name}
+                  Mark booked with {result.recommended.name}
                 </Button>
                 {result.backup ? (
                   <Button
@@ -401,10 +429,77 @@ function RouteView({ dashboard }: { dashboard: Dashboard }) {
       aria-labelledby="route-heading"
     >
       <div className="page-intro">
-        <p className="eyebrow">New client</p>
-        <h1 id="route-heading">Find the right chair.</h1>
-        <p>Availability first. Service fit next. Fairness always.</p>
+        <p className="eyebrow">Stylist rotation</p>
+        <h1 id="route-heading">Who’s up next?</h1>
+        <p>
+          See the live order, then check the service before marking someone
+          booked.
+        </p>
       </div>
+      <section
+        className="rotation-board"
+        aria-labelledby="rotation-board-heading"
+      >
+        <div className="rotation-board-header">
+          <div>
+            <p className="eyebrow">General rotation</p>
+            <h2 id="rotation-board-heading">
+              {rotation[0]
+                ? `${rotation[0].name} is up next`
+                : "No one is available"}
+            </h2>
+          </div>
+          <span className={cn("availability-chip", rotation[0] && "available")}>
+            {rotation[0] ? "Live" : "Check team"}
+          </span>
+        </div>
+        {rotation[0] ? (
+          <>
+            <div className="rotation-lead">
+              <div className="avatar avatar-large">
+                {initials(rotation[0].name)}
+              </div>
+              <div>
+                <strong>{rotation[0].name}</strong>
+                <span>
+                  {rotation[0].availabilityStatus === "now"
+                    ? "Available now"
+                    : "Available later"}
+                  {rotation[0].availabilityNote
+                    ? ` · ${rotation[0].availabilityNote}`
+                    : ""}
+                </span>
+              </div>
+              <small>{rotation[0].assignments.toString()} booked</small>
+            </div>
+            {rotation.length > 1 ? (
+              <ol
+                className="rotation-queue"
+                aria-label="Next stylists in rotation"
+              >
+                {rotation.slice(1, 4).map((stylist, index) => (
+                  <li key={stylist.id.toString()}>
+                    <span>{index + 2}</span>
+                    <strong>{stylist.name}</strong>
+                    <small>
+                      {stylist.availabilityStatus === "now" ? "Now" : "Later"}
+                    </small>
+                  </li>
+                ))}
+              </ol>
+            ) : null}
+            <p className="rotation-caveat">
+              The order may change when a requested service needs a specific
+              stylist.
+            </p>
+          </>
+        ) : (
+          <p className="rotation-empty">
+            Update a stylist to Available now or Available later to start the
+            rotation.
+          </p>
+        )}
+      </section>
       {dashboard.stylists.filter((stylist) => stylist.active).length === 0 ? (
         <div className="setup-callout">
           <UsersRound />
@@ -415,9 +510,19 @@ function RouteView({ dashboard }: { dashboard: Dashboard }) {
         </div>
       ) : null}
       <form className="surface-form" onSubmit={submit}>
+        <div className="form-heading">
+          <p className="eyebrow">Specific opportunity</p>
+          <h2>Check the service fit</h2>
+          <p>
+            The client never sees this form. It helps staff confirm the fair
+            next stylist.
+          </p>
+        </div>
         <div className="field-grid">
           <div className="field">
-            <Label htmlFor="client-name">Client first name or reference</Label>
+            <Label htmlFor="client-name">
+              Client reference <span>Optional</span>
+            </Label>
             <Input
               id="client-name"
               value={clientName}
@@ -426,7 +531,7 @@ function RouteView({ dashboard }: { dashboard: Dashboard }) {
               autoComplete="off"
             />
             <p className="field-help">
-              Use only what your team needs to identify the request.
+              A first name or short note for the staff handoff.
             </p>
           </div>
           <div className="field">
@@ -506,14 +611,14 @@ function RouteView({ dashboard }: { dashboard: Dashboard }) {
         <Button
           className="h-14 w-full text-base"
           type="submit"
-          disabled={!clientName.trim() || !service.trim() || route.isPending}
+          disabled={!service.trim() || route.isPending}
         >
           {route.isPending ? (
             <LoaderCircle className="animate-spin" />
           ) : (
             <Sparkles />
           )}
-          {route.isPending ? "Checking the rotation…" : "Find best match"}
+          {route.isPending ? "Checking the rotation…" : "Check who’s up next"}
         </Button>
         {notice ? (
           <p className="form-error" role="alert">
@@ -560,13 +665,13 @@ function TodayView({ dashboard }: { dashboard: Dashboard }) {
     <section className="page-section" aria-labelledby="today-heading">
       <div className="page-intro intro-row">
         <div>
-          <p className="eyebrow">Live desk</p>
-          <h1 id="today-heading">Today</h1>
-          <p>Every open handoff in one calm view.</p>
+          <p className="eyebrow">Stylist status</p>
+          <h1 id="today-heading">Booked</h1>
+          <p>See who received a client and what still needs attention.</p>
         </div>
         <div className="count-card">
           <strong>{confirmed}</strong>
-          <span>confirmed</span>
+          <span>booked</span>
         </div>
       </div>
       {active.length === 0 ? (
@@ -574,8 +679,8 @@ function TodayView({ dashboard }: { dashboard: Dashboard }) {
           <div className="empty-icon">
             <ClipboardList />
           </div>
-          <h2>Nothing waiting</h2>
-          <p>New recommendations and confirmed handoffs will appear here.</p>
+          <h2>No bookings recorded</h2>
+          <p>Once a stylist is marked booked, the assignment appears here.</p>
         </div>
       ) : (
         <div className="request-list">
@@ -607,7 +712,7 @@ function TodayView({ dashboard }: { dashboard: Dashboard }) {
                   <div className="person-row">
                     <div className="avatar">{initials(person.name)}</div>
                     <div>
-                      <span>{assigned ? "Assigned to" : "Recommended"}</span>
+                      <span>{assigned ? "Booked with" : "Up next"}</span>
                       <strong>{person.name}</strong>
                     </div>
                   </div>
@@ -1197,7 +1302,7 @@ function Workspace() {
           </span>
           <span>
             <strong>FairChair</strong>
-            <small>New client rotation</small>
+            <small>Stylist rotation</small>
           </span>
         </button>
         <nav className="desktop-nav" aria-label="Main navigation">

@@ -2,12 +2,13 @@
 
 ## Product
 
-FairChair is a private new-client routing workspace for salons. It applies three understandable rules in order: real availability, service fit, and the fairest comparable turn.
+FairChair is a private stylist rotation workspace for salon staff. Clients never book through it. The app shows who is up next, then applies three understandable rules when staff checks an opportunity: real availability, service fit, and the fairest comparable turn.
 
 ## Experience
 
 - Mobile-first, single-column workflows with 44–56px touch targets.
-- Four stable destinations: Route, Today, Stylists, and History.
+- Four stable destinations: Rotation, Booked, Stylists, and History.
+- The live general stylist order is the first and strongest element on the home screen.
 - One recommendation and one backup, never a competitive ranking.
 - Every recommendation carries a plain-language explanation.
 - Warm editorial styling that feels like a well-kept appointment ledger rather than enterprise scheduling software.

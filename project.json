@@ -1,11 +1,12 @@
 {
-  "overview": "A private, mobile-first new-client routing workspace that balances availability, service fit, and transparent fairness.",
+  "overview": "A private, mobile-first stylist rotation workspace that shows salon staff who is available, who fits the service, who is booked, and who is up next.",
   "features": [
-    "Route new clients to an explainable primary recommendation and backup",
+    "Show a live general rotation with the stylist who is up next",
+    "Check a specific service to produce an explainable primary recommendation and backup",
     "Track services stylists love, perform, and do not perform",
     "Use expiring availability and new-client opt-in controls",
     "Balance comparable opportunities through a transparent fair rotation",
-    "Track confirmations, outcomes, overrides, and an audit history",
+    "Mark stylists booked and track outcomes, overrides, and an audit history",
     "Export a human-readable recovery backup"
   ],
   "category": "productivity",
