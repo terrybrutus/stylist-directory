@@ -1,4 +1,8 @@
-import { type RouteInput, type StylistInput, createActor } from "@/backend";
+import {
+  type AppointmentInput,
+  type StylistInput,
+  createActor,
+} from "@/backend";
 import { useActor } from "@caffeineai/core-infrastructure";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -78,11 +82,11 @@ export function useSetStylistActive() {
   );
 }
 
-export function useRouteClient() {
+export function useRouteAppointment() {
   return useDirectoryMutation<
-    RouteInput,
-    Awaited<ReturnType<Actor["routeClient"]>>
-  >((actor, input) => actor.routeClient(input));
+    AppointmentInput,
+    Awaited<ReturnType<Actor["routeAppointment"]>>
+  >((actor, input) => actor.routeAppointment(input));
 }
 
 export function useAssignRequest() {

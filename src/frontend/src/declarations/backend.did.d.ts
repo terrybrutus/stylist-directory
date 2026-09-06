@@ -10,6 +10,14 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface AppointmentInput {
+  'service' : string,
+  'idempotencyKey' : string,
+  'clientName' : string,
+  'availableStylistIds' : Array<bigint>,
+  'notes' : string,
+  'requestedTime' : string,
+}
 export interface AuditEvent {
   'id' : bigint,
   'requestId' : [] | [bigint],
@@ -131,6 +139,7 @@ export interface _SERVICE {
   'getDashboard' : ActorMethod<[], Dashboard>,
   'getStylists' : ActorMethod<[], Array<Stylist__1>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'routeAppointment' : ActorMethod<[AppointmentInput], RoutingResult>,
   'routeClient' : ActorMethod<[RouteInput], RoutingResult>,
   'setRequestStatus' : ActorMethod<
     [bigint, string, bigint, string],

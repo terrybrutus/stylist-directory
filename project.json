@@ -1,11 +1,12 @@
 {
-  "overview": "A private, mobile-first stylist rotation workspace that shows salon staff who is available, who fits the service, who is booked, and who is up next.",
+  "overview": "A private, mobile-first stylist rotation workspace that uses staff-confirmed Booksy availability, service eligibility, and a persistent fair order to show who is up next.",
   "features": [
     "Show a live general rotation with the stylist who is up next",
     "Check a specific service to produce an explainable primary recommendation and backup",
     "Track services stylists love, perform, and do not perform",
-    "Use expiring availability and new-client opt-in controls",
-    "Balance comparable opportunities through a transparent fair rotation",
+    "Let staff select every stylist Booksy shows as free for the requested time",
+    "Preserve a busy stylist's place while moving to the next available person",
+    "Balance opportunities through a transparent least-recently-booked rotation",
     "Mark stylists booked and track outcomes, overrides, and an audit history",
     "Export a human-readable recovery backup"
   ],

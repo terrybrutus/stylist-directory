@@ -2,7 +2,7 @@
 
 ## Product
 
-FairChair is a private stylist rotation workspace for salon staff. Clients never book through it. The app shows who is up next, then applies three understandable rules when staff checks an opportunity: real availability, service fit, and the fairest comparable turn.
+FairChair is a private stylist rotation workspace for salon staff. Clients never book through it, and Booksy remains the schedule of record. For each opportunity, staff chooses the service, checks Booksy for the requested time, and selects every stylist who is free. FairChair then filters for service fit and recommends the first eligible person in the saved rotation.
 
 ## Experience
 
@@ -23,7 +23,9 @@ FairChair is a private stylist rotation workspace for salon staff. Clients never
 
 ## Safety cues
 
-- Availability automatically expires after 12 hours.
+- Availability is confirmed from Booksy for every opportunity instead of relying on a stale copied schedule.
+- A busy or temporarily unavailable stylist keeps their exact place in the rotation.
+- Cancelling a mistaken or client-cancelled booking restores the affected stylist to the front rather than counting it against them.
 - Mutation buttons show a pending state and backend failures never masquerade as saves.
 - Revision numbers protect against overwriting a newer record.
 - Idempotency keys protect routed requests from retry duplication.

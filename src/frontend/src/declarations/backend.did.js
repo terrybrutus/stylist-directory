@@ -108,6 +108,19 @@ export const Backup = IDL.Record({
   'exportedAt' : IDL.Nat,
   'version' : IDL.Nat,
 });
+export const AppointmentInput = IDL.Record({
+  'service' : IDL.Text,
+  'idempotencyKey' : IDL.Text,
+  'clientName' : IDL.Text,
+  'availableStylistIds' : IDL.Vec(IDL.Nat),
+  'notes' : IDL.Text,
+  'requestedTime' : IDL.Text,
+});
+export const RoutingResult = IDL.Record({
+  'request' : ClientRequest,
+  'backup' : IDL.Opt(Stylist),
+  'recommended' : IDL.Opt(Stylist),
+});
 export const RouteInput = IDL.Record({
   'service' : IDL.Text,
   'idempotencyKey' : IDL.Text,
@@ -116,11 +129,6 @@ export const RouteInput = IDL.Record({
   'specialtyMatters' : IDL.Bool,
   'notes' : IDL.Text,
   'requestedTime' : IDL.Text,
-});
-export const RoutingResult = IDL.Record({
-  'request' : ClientRequest,
-  'backup' : IDL.Opt(Stylist),
-  'recommended' : IDL.Opt(Stylist),
 });
 
 export const idlService = IDL.Service({
@@ -141,6 +149,7 @@ export const idlService = IDL.Service({
   'getDashboard' : IDL.Func([], [Dashboard], ['query']),
   'getStylists' : IDL.Func([], [IDL.Vec(Stylist__1)], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'routeAppointment' : IDL.Func([AppointmentInput], [RoutingResult], []),
   'routeClient' : IDL.Func([RouteInput], [RoutingResult], []),
   'setRequestStatus' : IDL.Func(
       [IDL.Nat, IDL.Text, IDL.Nat, IDL.Text],
@@ -255,6 +264,19 @@ export const idlFactory = ({ IDL }) => {
     'exportedAt' : IDL.Nat,
     'version' : IDL.Nat,
   });
+  const AppointmentInput = IDL.Record({
+    'service' : IDL.Text,
+    'idempotencyKey' : IDL.Text,
+    'clientName' : IDL.Text,
+    'availableStylistIds' : IDL.Vec(IDL.Nat),
+    'notes' : IDL.Text,
+    'requestedTime' : IDL.Text,
+  });
+  const RoutingResult = IDL.Record({
+    'request' : ClientRequest,
+    'backup' : IDL.Opt(Stylist),
+    'recommended' : IDL.Opt(Stylist),
+  });
   const RouteInput = IDL.Record({
     'service' : IDL.Text,
     'idempotencyKey' : IDL.Text,
@@ -263,11 +285,6 @@ export const idlFactory = ({ IDL }) => {
     'specialtyMatters' : IDL.Bool,
     'notes' : IDL.Text,
     'requestedTime' : IDL.Text,
-  });
-  const RoutingResult = IDL.Record({
-    'request' : ClientRequest,
-    'backup' : IDL.Opt(Stylist),
-    'recommended' : IDL.Opt(Stylist),
   });
   
   return IDL.Service({
@@ -288,6 +305,7 @@ export const idlFactory = ({ IDL }) => {
     'getDashboard' : IDL.Func([], [Dashboard], ['query']),
     'getStylists' : IDL.Func([], [IDL.Vec(Stylist__1)], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'routeAppointment' : IDL.Func([AppointmentInput], [RoutingResult], []),
     'routeClient' : IDL.Func([RouteInput], [RoutingResult], []),
     'setRequestStatus' : IDL.Func(
         [IDL.Nat, IDL.Text, IDL.Nat, IDL.Text],

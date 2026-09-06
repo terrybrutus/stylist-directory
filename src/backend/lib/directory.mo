@@ -73,16 +73,40 @@ module {
   };
 
   func comesBefore(left : Types.Stylist, right : Types.Stylist) : Bool {
-    // Compare assignment rates without floating point: a/b < c/d => a*d < c*b.
-    let leftDenominator = Nat.max(left.eligibleOpportunities, 1);
-    let rightDenominator = Nat.max(right.eligibleOpportunities, 1);
-    let leftWeighted = left.assignments * rightDenominator;
-    let rightWeighted = right.assignments * leftDenominator;
-    if (leftWeighted < rightWeighted) return true;
-    if (leftWeighted > rightWeighted) return false;
+    // The least-recently-booked stylist is at the front of the rotation.
+    // Filtering someone out leaves this value untouched, preserving their turn.
     if (left.lastAssignedAt < right.lastAssignedAt) return true;
     if (left.lastAssignedAt > right.lastAssignedAt) return false;
     left.id < right.id
+  };
+
+  func selected(stylistId : Nat, selectedIds : [Nat]) : Bool {
+    for (id in selectedIds.values()) {
+      if (id == stylistId) return true;
+    };
+    false
+  };
+
+  func hasAvailabilitySelection(state : State, requestId : Nat) : Bool {
+    state.audit.any(
+      func(event) { event.requestId == ?requestId and event.kind == "availability.selected" },
+    )
+  };
+
+  func selectedForRequest(state : State, requestId : Nat, stylistId : Nat) : Bool {
+    state.audit.any(
+      func(event) {
+        event.requestId == ?requestId and event.stylistId == ?stylistId and event.kind == "availability.selected"
+      },
+    )
+  };
+
+  func skippedForRequest(state : State, requestId : Nat, stylistId : Nat) : Bool {
+    state.audit.any(
+      func(event) {
+        event.requestId == ?requestId and event.stylistId == ?stylistId and event.kind == "request.turn_preserved"
+      },
+    )
   };
 
   func rankedEligible(state : State, input : Types.RouteInput, currentTime : Nat) : [Types.Stylist] {
@@ -96,6 +120,25 @@ module {
     List.toArray(pool.sort(func(left, right) {
       if (comesBefore(left, right)) #less else if (comesBefore(right, left)) #greater else #equal
     }))
+  };
+
+  func rankedSelected(state : State, input : Types.RouteInput, selectedIds : [Nat]) : [Types.Stylist] {
+    let eligible = state.stylists.filter(
+      func(stylist) {
+        stylist.active and stylist.acceptsNewClients and selected(stylist.id, selectedIds) and hasService(stylist, input.service)
+      },
+    );
+    eligible.sort(func(left, right) {
+      if (comesBefore(left, right)) #less else if (comesBefore(right, left)) #greater else #equal
+    }).toArray()
+  };
+
+  func rotationStamp(state : State) : Nat {
+    var latest = now();
+    for (stylist in state.stylists.values()) {
+      if (stylist.lastAssignedAt >= latest) latest := stylist.lastAssignedAt + 1;
+    };
+    latest
   };
 
   func incrementOpportunity(state : State, stylistId : Nat) {
@@ -167,7 +210,7 @@ module {
     updated
   };
 
-  public func routeClient(state : State, input : Types.RouteInput) : Types.RoutingResult {
+  func route(state : State, input : Types.RouteInput, selectedIds : ?[Nat]) : Types.RoutingResult {
     if (clean(input.idempotencyKey) != "") {
       switch (state.requests.find(func(request) { request.idempotencyKey == input.idempotencyKey })) {
         case (?existing) return routingResult(state, existing);
@@ -175,7 +218,10 @@ module {
       }
     };
     let timestamp = now();
-    let ranked = rankedEligible(state, input, timestamp);
+    let ranked = switch (selectedIds) {
+      case null rankedEligible(state, input, timestamp);
+      case (?ids) rankedSelected(state, input, ids);
+    };
     for (stylist in ranked.values()) { incrementOpportunity(state, stylist.id) };
     let recommendedId = if (ranked.size() > 0) ?ranked[0].id else null;
     let backupId = if (ranked.size() > 1) ?ranked[1].id else null;
@@ -184,7 +230,7 @@ module {
       case (?_id) {
         let selected = ranked[0];
         let fit = if (lovesService(selected, input.service)) "loves this service" else "performs this service";
-        selected.name # " is available, " # fit # ", and is due the next comparable new-client opportunity."
+        selected.name # " was marked available, " # fit # ", and is first in the current rotation."
       };
     };
     let request : Types.ClientRequest = {
@@ -211,6 +257,32 @@ module {
     routingResult(state, request)
   };
 
+  public func routeClient(state : State, input : Types.RouteInput) : Types.RoutingResult {
+    route(state, input, null)
+  };
+
+  public func routeAppointment(state : State, input : Types.AppointmentInput) : Types.RoutingResult {
+    if (clean(input.service) == "" or input.availableStylistIds.size() == 0) { assert false };
+    let routeInput : Types.RouteInput = {
+      idempotencyKey = input.idempotencyKey;
+      clientName = input.clientName;
+      service = input.service;
+      requestedTime = input.requestedTime;
+      timing = "staff_selected";
+      specialtyMatters = false;
+      notes = input.notes;
+    };
+    let result = route(state, routeInput, ?input.availableStylistIds);
+    if (not hasAvailabilitySelection(state, result.request.id)) {
+      for (stylist in state.stylists.values()) {
+        if (selected(stylist.id, input.availableStylistIds)) {
+          addAudit(state, ?result.request.id, ?stylist.id, "availability.selected", stylist.name # " was marked free after checking Booksy");
+        };
+      };
+    };
+    result
+  };
+
   func routingResult(state : State, request : Types.ClientRequest) : Types.RoutingResult {
     {
       request;
@@ -232,7 +304,8 @@ module {
     let stylistIndex = switch (findStylistIndex(state, stylistId)) { case null { assert false; 0 }; case (?value) value };
     let stylist = state.stylists.at(stylistIndex);
     let timestamp = now();
-    let updatedStylist = { stylist with assignments = stylist.assignments + 1; lastAssignedAt = timestamp; updatedAt = timestamp; revision = stylist.revision + 1 };
+    let nextTurn = rotationStamp(state);
+    let updatedStylist = { stylist with assignments = stylist.assignments + 1; lastAssignedAt = nextTurn; updatedAt = timestamp; revision = stylist.revision + 1 };
     state.stylists.put(stylistIndex, updatedStylist);
     let updatedRequest = {
       existing with
@@ -252,29 +325,33 @@ module {
     let existing = state.requests.at(requestIndex);
     if (existing.revision != expectedRevision) { assert false };
     let oldRecommended = existing.recommendedStylistId;
-    switch (oldRecommended) {
-      case null {};
-      case (?id) {
-        switch (findStylistIndex(state, id)) {
-          case null {};
-          case (?stylistIndex) {
-            let stylist = state.stylists.at(stylistIndex);
-            state.stylists.put(stylistIndex, { stylist with declines = stylist.declines + 1; updatedAt = now(); revision = stylist.revision + 1 });
-          };
-        }
-      };
+    let ranked = if (hasAvailabilitySelection(state, requestId)) {
+      state.stylists.filter(
+        func(stylist) {
+          stylist.active and stylist.acceptsNewClients and hasService(stylist, existing.service) and selectedForRequest(state, requestId, stylist.id) and not skippedForRequest(state, requestId, stylist.id) and oldRecommended != ?stylist.id
+        },
+      ).sort(func(left, right) {
+        if (comesBefore(left, right)) #less else if (comesBefore(right, left)) #greater else #equal
+      }).toArray()
+    } else {
+      switch (existing.backupStylistId) {
+        case null [];
+        case (?id) state.stylists.filter(func(stylist) { stylist.id == id }).toArray();
+      }
     };
+    let nextId = if (ranked.size() > 0) ?ranked[0].id else null;
+    let backupId = if (ranked.size() > 1) ?ranked[1].id else null;
     let updated = {
       existing with
-      recommendedStylistId = existing.backupStylistId;
-      backupStylistId = null;
-      explanation = switch (existing.backupStylistId) { case null "No additional eligible stylist is available."; case (?_id) "The next eligible stylist is now recommended." };
-      status = if (existing.backupStylistId == null) "unmatched" else "suggested";
+      recommendedStylistId = nextId;
+      backupStylistId = backupId;
+      explanation = switch (nextId) { case null "No additional eligible stylist is available."; case (?_id) "The next Booksy-available stylist in the saved rotation is now recommended." };
+      status = if (nextId == null) "unmatched" else "suggested";
       updatedAt = now();
       revision = existing.revision + 1;
     };
     state.requests.put(requestIndex, updated);
-    addAudit(state, ?requestId, oldRecommended, "request.passed", if (clean(reason) == "") "Recommendation passed" else clean(reason));
+    addAudit(state, ?requestId, oldRecommended, "request.turn_preserved", if (clean(reason) == "") "Stylist was skipped and kept their place" else clean(reason));
     routingResult(state, updated)
   };
 
@@ -300,7 +377,8 @@ module {
             case (?stylistIndex) {
               let stylist = state.stylists.at(stylistIndex);
               let assignments : Nat = if (stylist.assignments == 0) 0 else stylist.assignments - 1;
-              state.stylists.put(stylistIndex, { stylist with assignments; updatedAt = now(); revision = stylist.revision + 1 });
+              // A cancelled or mistaken booking must not cost the stylist a turn.
+              state.stylists.put(stylistIndex, { stylist with assignments; lastAssignedAt = 0; updatedAt = now(); revision = stylist.revision + 1 });
             };
           }
         };

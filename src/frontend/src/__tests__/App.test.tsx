@@ -1,7 +1,12 @@
 import "@testing-library/jest-dom/vitest";
 
 import App from "@/App";
-import type { Dashboard, RouteInput, Stylist, StylistInput } from "@/backend";
+import type {
+  AppointmentInput,
+  Dashboard,
+  Stylist,
+  StylistInput,
+} from "@/backend";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -50,28 +55,33 @@ const mockActor = {
   }),
   updateStylist: vi.fn(),
   setStylistActive: vi.fn(),
-  routeClient: vi.fn(async (input: RouteInput) => ({
-    request: {
-      id: 1n,
-      idempotencyKey: input.idempotencyKey,
-      clientName: input.clientName,
-      service: input.service,
-      requestedTime: input.requestedTime,
-      timing: input.timing,
-      specialtyMatters: input.specialtyMatters,
-      notes: input.notes,
-      status: "suggested",
-      recommendedStylistId: state.stylists[0]?.id,
-      backupStylistId: undefined,
-      assignedStylistId: undefined,
-      explanation: `${state.stylists[0]?.name} is available, loves this service, and is due the next comparable new-client opportunity.`,
-      createdAt: 1n,
-      updatedAt: 1n,
-      revision: 1n,
-    },
-    recommended: state.stylists[0],
-    backup: undefined,
-  })),
+  routeAppointment: vi.fn(async (input: AppointmentInput) => {
+    const recommended = state.stylists.find((stylist) =>
+      input.availableStylistIds.includes(stylist.id),
+    );
+    return {
+      request: {
+        id: 1n,
+        idempotencyKey: input.idempotencyKey,
+        clientName: input.clientName,
+        service: input.service,
+        requestedTime: input.requestedTime,
+        timing: "staff_selected",
+        specialtyMatters: false,
+        notes: input.notes,
+        status: "suggested",
+        recommendedStylistId: recommended?.id,
+        backupStylistId: undefined,
+        assignedStylistId: undefined,
+        explanation: `${recommended?.name} was marked available, matches the service, and is first in the current rotation.`,
+        createdAt: 1n,
+        updatedAt: 1n,
+        revision: 1n,
+      },
+      recommended,
+      backup: undefined,
+    };
+  }),
   assignRequest: vi.fn(async () => undefined),
   useBackup: vi.fn(),
   setRequestStatus: vi.fn(),
@@ -204,21 +214,28 @@ describe("FairChair", () => {
     renderApp();
     await screen.findByRole("heading", { name: "Who’s up next?" });
     expect(
-      screen.getByRole("heading", { name: "Ally Rivera is up next" }),
+      screen.getByRole("heading", { name: "Ally Rivera is first in line" }),
     ).toBeInTheDocument();
-    await user.type(screen.getByLabelText("Requested service"), "Balayage");
-    await user.click(
-      screen.getByRole("button", { name: "Check who’s up next" }),
+    await user.selectOptions(
+      screen.getByLabelText("What service do they want?"),
+      "Balayage",
     );
+    const submit = screen.getByRole("button", { name: "Check who’s up next" });
+    expect(submit).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: /Ally Rivera.*#1/ }));
+    await user.click(submit);
 
     expect(
       await screen.findByRole("heading", { name: "Ally Rivera" }),
     ).toBeInTheDocument();
-    expect(mockActor.routeClient).toHaveBeenCalledWith(
-      expect.objectContaining({ clientName: "New client" }),
+    expect(mockActor.routeAppointment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clientName: "New client",
+        availableStylistIds: [1n],
+      }),
     );
     expect(
-      screen.getByText(/due the next comparable new-client opportunity/),
+      screen.getByText(/first in the current rotation/),
     ).toBeInTheDocument();
     await user.click(
       screen.getByRole("button", { name: "Mark booked with Ally Rivera" }),

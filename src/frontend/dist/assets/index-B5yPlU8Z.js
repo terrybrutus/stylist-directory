@@ -36532,6 +36532,19 @@ const Backup = Record({
   "exportedAt": Nat,
   "version": Nat
 });
+const AppointmentInput = Record({
+  "service": Text,
+  "idempotencyKey": Text,
+  "clientName": Text,
+  "availableStylistIds": Vec(Nat),
+  "notes": Text,
+  "requestedTime": Text
+});
+const RoutingResult = Record({
+  "request": ClientRequest,
+  "backup": Opt(Stylist),
+  "recommended": Opt(Stylist)
+});
 const RouteInput = Record({
   "service": Text,
   "idempotencyKey": Text,
@@ -36540,11 +36553,6 @@ const RouteInput = Record({
   "specialtyMatters": Bool,
   "notes": Text,
   "requestedTime": Text
-});
-const RoutingResult = Record({
-  "request": ClientRequest,
-  "backup": Opt(Stylist),
-  "recommended": Opt(Stylist)
 });
 Service({
   "_initialize_access_control": Func([], [], []),
@@ -36564,6 +36572,7 @@ Service({
   "getDashboard": Func([], [Dashboard], ["query"]),
   "getStylists": Func([], [Vec(Stylist__1)], ["query"]),
   "isCallerAdmin": Func([], [Bool], ["query"]),
+  "routeAppointment": Func([AppointmentInput], [RoutingResult], []),
   "routeClient": Func([RouteInput], [RoutingResult], []),
   "setRequestStatus": Func(
     [Nat, Text, Nat, Text],
@@ -36675,6 +36684,19 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "exportedAt": IDL2.Nat,
     "version": IDL2.Nat
   });
+  const AppointmentInput2 = IDL2.Record({
+    "service": IDL2.Text,
+    "idempotencyKey": IDL2.Text,
+    "clientName": IDL2.Text,
+    "availableStylistIds": IDL2.Vec(IDL2.Nat),
+    "notes": IDL2.Text,
+    "requestedTime": IDL2.Text
+  });
+  const RoutingResult2 = IDL2.Record({
+    "request": ClientRequest2,
+    "backup": IDL2.Opt(Stylist2),
+    "recommended": IDL2.Opt(Stylist2)
+  });
   const RouteInput2 = IDL2.Record({
     "service": IDL2.Text,
     "idempotencyKey": IDL2.Text,
@@ -36683,11 +36705,6 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "specialtyMatters": IDL2.Bool,
     "notes": IDL2.Text,
     "requestedTime": IDL2.Text
-  });
-  const RoutingResult2 = IDL2.Record({
-    "request": ClientRequest2,
-    "backup": IDL2.Opt(Stylist2),
-    "recommended": IDL2.Opt(Stylist2)
   });
   return IDL2.Service({
     "_initialize_access_control": IDL2.Func([], [], []),
@@ -36707,6 +36724,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "getDashboard": IDL2.Func([], [Dashboard2], ["query"]),
     "getStylists": IDL2.Func([], [IDL2.Vec(Stylist__12)], ["query"]),
     "isCallerAdmin": IDL2.Func([], [IDL2.Bool], ["query"]),
+    "routeAppointment": IDL2.Func([AppointmentInput2], [RoutingResult2], []),
     "routeClient": IDL2.Func([RouteInput2], [RoutingResult2], []),
     "setRequestStatus": IDL2.Func(
       [IDL2.Nat, IDL2.Text, IDL2.Nat, IDL2.Text],
@@ -36908,6 +36926,20 @@ class Backend {
     } else {
       const result = await this.actor.isCallerAdmin();
       return result;
+    }
+  }
+  async routeAppointment(arg0) {
+    if (this.processError) {
+      try {
+        const result = await this.actor.routeAppointment(arg0);
+        return from_candid_RoutingResult_n20(this._uploadFile, this._downloadFile, result);
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.routeAppointment(arg0);
+      return from_candid_RoutingResult_n20(this._uploadFile, this._downloadFile, result);
     }
   }
   async routeClient(arg0) {
@@ -37198,8 +37230,8 @@ function useSetStylistActive() {
     (actor, variables) => actor.setStylistActive(variables.id, variables.active, variables.revision)
   );
 }
-function useRouteClient() {
-  return useDirectoryMutation((actor, input) => actor.routeClient(input));
+function useRouteAppointment() {
+  return useDirectoryMutation((actor, input) => actor.routeAppointment(input));
 }
 function useAssignRequest() {
   return useDirectoryMutation(
@@ -37582,9 +37614,6 @@ const STATUS_LABELS = {
   cancelled: "Cancelled",
   unmatched: "Needs attention"
 };
-function expiryInHours(hours) {
-  return BigInt(Date.now() + hours * 60 * 60 * 1e3) * 1000000n;
-}
 function fromNanoseconds(value) {
   if (value === 0n) return "Not yet";
   return new Intl.DateTimeFormat(void 0, {
@@ -37611,20 +37640,18 @@ function getStylist(stylists, id) {
   return stylists.find((stylist) => stylist.id === id);
 }
 function currentRotation(stylists) {
-  const now2 = BigInt(Date.now()) * 1000000n;
-  return stylists.filter(
-    (stylist) => stylist.active && stylist.acceptsNewClients && stylist.availabilityStatus !== "unavailable" && (stylist.availabilityExpiresAt === 0n || stylist.availabilityExpiresAt > now2)
-  ).sort((left, right) => {
-    const leftDenominator = left.eligibleOpportunities === 0n ? 1n : left.eligibleOpportunities;
-    const rightDenominator = right.eligibleOpportunities === 0n ? 1n : right.eligibleOpportunities;
-    const leftRate = left.assignments * rightDenominator;
-    const rightRate = right.assignments * leftDenominator;
-    if (leftRate !== rightRate) return leftRate < rightRate ? -1 : 1;
+  return stylists.filter((stylist) => stylist.active && stylist.acceptsNewClients).sort((left, right) => {
     if (left.lastAssignedAt !== right.lastAssignedAt) {
       return left.lastAssignedAt < right.lastAssignedAt ? -1 : 1;
     }
     return left.id < right.id ? -1 : 1;
   });
+}
+function performsService(stylist, service) {
+  const requested = service.trim().toLocaleLowerCase();
+  return stylist.services.some(
+    (item) => item.name.trim().toLocaleLowerCase() === requested && item.level !== "avoid"
+  );
 }
 function mutationMessage(error) {
   const message = error instanceof Error ? error.message : String(error);
@@ -37643,7 +37670,7 @@ function LoginScreen() {
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "brand-mark", "aria-hidden": "true", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Scissors, { size: 25, strokeWidth: 1.8 }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "eyebrow", children: "Private workspace" }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { id: "login-title", children: "Know who’s up next." }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "login-copy", children: "A private stylist rotation for your salon team—based on real availability, service fit, and fairness." }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "login-copy", children: "A private stylist rotation for your salon team—based on Booksy-confirmed availability, service fit, and fairness." }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs(
       Button,
       {
@@ -37664,15 +37691,15 @@ function LoginScreen() {
   ] }) });
 }
 function RouteView({ dashboard }) {
-  const route = useRouteClient();
+  const route = useRouteAppointment();
   const assign2 = useAssignRequest();
   const useBackup = useBackupRecommendation();
   const [clientName, setClientName] = reactExports.useState("");
   const [service, setService] = reactExports.useState("");
   const [timing, setTiming] = reactExports.useState("now");
   const [requestedTime, setRequestedTime] = reactExports.useState("");
-  const [specialtyMatters, setSpecialtyMatters] = reactExports.useState(false);
   const [notes, setNotes] = reactExports.useState("");
+  const [availableStylistIds, setAvailableStylistIds] = reactExports.useState([]);
   const [result, setResult] = reactExports.useState(null);
   const [notice, setNotice] = reactExports.useState("");
   const [overrideId, setOverrideId] = reactExports.useState("");
@@ -37685,18 +37712,27 @@ function RouteView({ dashboard }) {
     () => currentRotation(dashboard.stylists),
     [dashboard.stylists]
   );
+  const capableStylists = reactExports.useMemo(
+    () => rotation.filter((stylist) => performsService(stylist, service)),
+    [rotation, service]
+  );
+  function toggleAvailable(stylistId) {
+    setAvailableStylistIds(
+      (current) => current.includes(stylistId) ? current.filter((id) => id !== stylistId) : [...current, stylistId]
+    );
+  }
   function submit(event) {
     event.preventDefault();
-    if (!service.trim()) return;
+    if (!service.trim() || availableStylistIds.length === 0 || timing === "later" && !requestedTime)
+      return;
     setNotice("");
     route.mutate(
       {
         idempotencyKey: crypto.randomUUID(),
         clientName: clientName.trim() || "New client",
         service: service.trim(),
-        timing,
         requestedTime: timing === "now" ? "As soon as possible" : requestedTime.trim(),
-        specialtyMatters,
+        availableStylistIds,
         notes: notes.trim()
       },
       {
@@ -37723,7 +37759,7 @@ function RouteView({ dashboard }) {
           setService("");
           setRequestedTime("");
           setNotes("");
-          setSpecialtyMatters(false);
+          setAvailableStylistIds([]);
         },
         onError: (error) => setNotice(mutationMessage(error))
       }
@@ -37735,7 +37771,7 @@ function RouteView({ dashboard }) {
       {
         requestId: result.request.id,
         revision: result.request.revision,
-        reason: "Original recommendation was not available"
+        reason: "Busy or unavailable — turn preserved"
       },
       {
         onSuccess: (next) => setResult(next),
@@ -37833,7 +37869,8 @@ function RouteView({ dashboard }) {
                 disabled: useBackup.isPending,
                 children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx(RotateCcw, {}),
-                  " Try backup: ",
+                  " Can’t take it — keep place, show",
+                  " ",
                   result.backup.name
                 ]
               }
@@ -37913,19 +37950,16 @@ function RouteView({ dashboard }) {
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rotation-board-header", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "eyebrow", children: "General rotation" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { id: "rotation-board-heading", children: rotation[0] ? `${rotation[0].name} is up next` : "No one is available" })
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { id: "rotation-board-heading", children: rotation[0] ? `${rotation[0].name} is first in line` : "No stylists in rotation" })
                 ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: cn("availability-chip", rotation[0] && "available"), children: rotation[0] ? "Live" : "Check team" })
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "availability-chip", children: rotation[0] ? "Saved order" : "Check team" })
               ] }),
               rotation[0] ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rotation-lead", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "avatar avatar-large", children: initials(rotation[0].name) }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: rotation[0].name }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
-                      rotation[0].availabilityStatus === "now" ? "Available now" : "Available later",
-                      rotation[0].availabilityNote ? ` · ${rotation[0].availabilityNote}` : ""
-                    ] })
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Front of the rotation · keeps this place until booked" })
                   ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("small", { children: [
                     rotation[0].assignments.toString(),
@@ -37940,12 +37974,15 @@ function RouteView({ dashboard }) {
                     children: rotation.slice(1, 4).map((stylist, index2) => /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: index2 + 2 }),
                       /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: stylist.name }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("small", { children: stylist.availabilityStatus === "now" ? "Now" : "Later" })
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("small", { children: [
+                        stylist.assignments.toString(),
+                        " booked"
+                      ] })
                     ] }, stylist.id.toString()))
                   }
                 ) : null,
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "rotation-caveat", children: "The order may change when a requested service needs a specific stylist." })
-              ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "rotation-empty", children: "Update a stylist to Available now or Available later to start the rotation." })
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "rotation-caveat", children: "Booksy determines who is free. FairChair preserves this order and filters it for each opportunity." })
+              ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "rotation-empty", children: "Add an active stylist who accepts new clients to start the rotation." })
             ]
           }
         ),
@@ -37962,39 +37999,25 @@ function RouteView({ dashboard }) {
             /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "Check the service fit" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "The client never sees this form. It helps staff confirm the fair next stylist." })
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field-grid", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { htmlFor: "client-name", children: [
-                "Client reference ",
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Optional" })
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                Input,
-                {
-                  id: "client-name",
-                  value: clientName,
-                  onChange: (event) => setClientName(event.target.value),
-                  placeholder: "e.g. Maria",
-                  autoComplete: "off"
-                }
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "field-help", children: "A first name or short note for the staff handoff." })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { htmlFor: "service", children: "Requested service" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                Input,
-                {
-                  id: "service",
-                  list: "service-options",
-                  value: service,
-                  onChange: (event) => setService(event.target.value),
-                  placeholder: "e.g. Balayage",
-                  autoComplete: "off"
-                }
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("datalist", { id: "service-options", children: services.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: item }, item)) })
-            ] })
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { htmlFor: "service", children: "What service do they want?" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "select",
+              {
+                id: "service",
+                value: service,
+                onChange: (event) => {
+                  setService(event.target.value);
+                  setAvailableStylistIds([]);
+                },
+                required: true,
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "", children: services.length ? "Choose a service" : "Add stylist services first" }),
+                  services.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: item, children: item }, item))
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "field-help", children: "Only stylists who perform this service will be considered." })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("fieldset", { className: "field", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("legend", { children: "When do they need it?" }),
@@ -38034,41 +38057,76 @@ function RouteView({ dashboard }) {
               }
             )
           ] }) : null,
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "switch-row", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { htmlFor: "specialty-matters", children: "This service needs a specialist" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Prioritize stylists who marked it as a service they love." })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Switch,
-              {
-                id: "specialty-matters",
-                checked: specialtyMatters,
-                onCheckedChange: setSpecialtyMatters
-              }
-            )
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("fieldset", { className: "field availability-picker", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("legend", { children: "Who does Booksy show as free?" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "field-help", children: "Check Booksy for this time, then select every stylist who can take the client. Busy people keep their place in the rotation." }),
+            !service ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "selection-empty", children: "Choose a service first." }) : capableStylists.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "selection-empty", children: "No active stylist is set up to perform this service." }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "stylist-choices", children: capableStylists.map((stylist) => {
+              const checked = availableStylistIds.includes(stylist.id);
+              const position = rotation.findIndex(
+                (candidate) => candidate.id === stylist.id
+              );
+              return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "button",
+                {
+                  type: "button",
+                  className: cn("stylist-choice", checked && "selected"),
+                  "aria-pressed": checked,
+                  onClick: () => toggleAvailable(stylist.id),
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "choice-check", "aria-hidden": "true", children: checked ? /* @__PURE__ */ jsxRuntimeExports.jsx(Check, {}) : null }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: stylist.name }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("small", { children: [
+                        "#",
+                        position + 1,
+                        " in the saved rotation"
+                      ] })
+                    ] })
+                  ]
+                },
+                stylist.id.toString()
+              );
+            }) })
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { htmlFor: "route-notes", children: [
-              "Helpful notes ",
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Optional" })
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field-grid", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { htmlFor: "client-name", children: [
+                "Client reference ",
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Optional" })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Input,
+                {
+                  id: "client-name",
+                  value: clientName,
+                  onChange: (event) => setClientName(event.target.value),
+                  placeholder: "e.g. Maria",
+                  autoComplete: "off"
+                }
+              )
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Textarea,
-              {
-                id: "route-notes",
-                value: notes,
-                onChange: (event) => setNotes(event.target.value),
-                placeholder: "Timing flexibility or another important detail"
-              }
-            )
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { htmlFor: "route-notes", children: [
+                "Helpful notes ",
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Optional" })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Textarea,
+                {
+                  id: "route-notes",
+                  value: notes,
+                  onChange: (event) => setNotes(event.target.value),
+                  placeholder: "Timing flexibility or another important detail"
+                }
+              )
+            ] })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs(
             Button,
             {
               className: "h-14 w-full text-base",
               type: "submit",
-              disabled: !service.trim() || route.isPending,
+              disabled: !service.trim() || availableStylistIds.length === 0 || timing === "later" && !requestedTime || route.isPending,
               children: [
                 route.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, {}),
                 route.isPending ? "Checking the rotation…" : "Check who’s up next"
@@ -38080,7 +38138,7 @@ function RouteView({ dashboard }) {
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "trust-strip", "aria-label": "How recommendations work", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "1" }),
-            " Available"
+            " Free in Booksy"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronRight, {}),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
@@ -38227,12 +38285,6 @@ function StylistForm({
   const [avoids, setAvoids] = reactExports.useState(
     (stylist == null ? void 0 : stylist.services.filter((item) => item.level === "avoid").map((item) => item.name).join(", ")) ?? ""
   );
-  const [availabilityStatus, setAvailabilityStatus] = reactExports.useState(
-    (stylist == null ? void 0 : stylist.availabilityStatus) ?? "now"
-  );
-  const [availabilityNote, setAvailabilityNote] = reactExports.useState(
-    (stylist == null ? void 0 : stylist.availabilityNote) ?? ""
-  );
   const [acceptsNewClients, setAcceptsNewClients] = reactExports.useState(
     (stylist == null ? void 0 : stylist.acceptsNewClients) ?? true
   );
@@ -38251,10 +38303,10 @@ function StylistForm({
       name: name.trim(),
       phone: phone.trim(),
       services,
-      availabilityStatus,
-      availabilityNote: availabilityNote.trim(),
+      availabilityStatus: "later",
+      availabilityNote: "Check Booksy for live availability",
       acceptsNewClients,
-      availabilityExpiresAt: availabilityStatus === "unavailable" ? 0n : expiryInHours(12)
+      availabilityExpiresAt: 0n
     };
     const callbacks = {
       onSuccess: onDone,
@@ -38275,7 +38327,7 @@ function StylistForm({
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "page-intro", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "eyebrow", children: "Team profile" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { id: "stylist-form-heading", children: stylist ? `Edit ${stylist.name}` : "Add a stylist" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Describe what they love, what they perform, and when they can take someone new." })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Record what they love and every service they can perform. Live availability stays in Booksy." })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("form", { className: "surface-form", onSubmit: submit, children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field-grid", children: [
@@ -38350,36 +38402,13 @@ function StylistForm({
           )
         ] })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("fieldset", { className: "field", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("legend", { children: "Current availability" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "three-way-control", children: [
-          { value: "now", label: "Available now" },
-          { value: "later", label: "Available later" },
-          { value: "unavailable", label: "Unavailable" }
-        ].map((option) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "button",
-          {
-            type: "button",
-            className: cn(availabilityStatus === option.value && "active"),
-            onClick: () => setAvailabilityStatus(option.value),
-            "aria-pressed": availabilityStatus === option.value,
-            children: option.label
-          },
-          option.value
-        )) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "field-help", children: "Available statuses automatically expire after 12 hours to prevent stale assignments." })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "field", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { htmlFor: "availability-note", children: "Hours or timing note" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          Input,
-          {
-            id: "availability-note",
-            value: availabilityNote,
-            onChange: (event) => setAvailabilityNote(event.target.value),
-            placeholder: "e.g. Today until 6, Tue–Fri 10–4"
-          }
-        )
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "booksy-note", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CalendarClock, {}),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "Schedule managed in Booksy" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("br", {}),
+          "Staff will select this stylist only when Booksy shows them free for a specific client and time."
+        ] })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "switch-row", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
@@ -38412,12 +38441,12 @@ function StylistForm({
   ] });
 }
 function StylistsView({ dashboard }) {
-  const update = useUpdateStylist();
   const setActive = useSetStylistActive();
   const [editing, setEditing] = reactExports.useState(null);
-  const stylists = [...dashboard.stylists].sort(
-    (a2, b2) => Number(b2.active) - Number(a2.active) || a2.name.localeCompare(b2.name)
-  );
+  const rotation = currentRotation(dashboard.stylists);
+  const rotationIds = new Set(rotation.map((stylist) => stylist.id));
+  const outsideRotation = dashboard.stylists.filter((stylist) => !rotationIds.has(stylist.id)).sort((a2, b2) => a2.name.localeCompare(b2.name));
+  const stylists = [...rotation, ...outsideRotation];
   if (editing)
     return /* @__PURE__ */ jsxRuntimeExports.jsx(
       StylistForm,
@@ -38426,24 +38455,12 @@ function StylistsView({ dashboard }) {
         onDone: () => setEditing(null)
       }
     );
-  function quickAvailability(stylist, availabilityStatus) {
-    const input = {
-      name: stylist.name,
-      phone: stylist.phone,
-      services: stylist.services,
-      availabilityStatus,
-      availabilityNote: stylist.availabilityNote,
-      availabilityExpiresAt: availabilityStatus === "unavailable" ? 0n : expiryInHours(12),
-      acceptsNewClients: stylist.acceptsNewClients
-    };
-    update.mutate({ id: stylist.id, input, revision: stylist.revision });
-  }
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "page-section", "aria-labelledby": "stylists-heading", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "page-intro intro-row", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "eyebrow", children: "Your team" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { id: "stylists-heading", children: "Stylists" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Keep service fit and availability honest." })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Manage service eligibility and the saved rotation." })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs(Button, { onClick: () => setEditing("new"), children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, {}),
@@ -38453,7 +38470,7 @@ function StylistsView({ dashboard }) {
     stylists.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "empty-panel bordered", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "empty-icon", children: /* @__PURE__ */ jsxRuntimeExports.jsx(UserRound, {}) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "Build your team" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Add each stylist’s services and current availability." }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Add each stylist and the services they can perform." }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs(Button, { onClick: () => setEditing("new"), children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, {}),
         " Add first stylist"
@@ -38462,7 +38479,9 @@ function StylistsView({ dashboard }) {
       const loves = stylist.services.filter(
         (item) => item.level === "love"
       );
-      const rate = stylist.eligibleOpportunities === 0n ? "New" : `${Math.round(Number(stylist.assignments * 100n / stylist.eligibleOpportunities))}%`;
+      const rotationPosition = rotation.findIndex(
+        (candidate) => candidate.id === stylist.id
+      );
       return /* @__PURE__ */ jsxRuntimeExports.jsxs(
         "article",
         {
@@ -38487,47 +38506,26 @@ function StylistsView({ dashboard }) {
                 }
               )
             ] }),
-            stylist.active ? /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "div",
-              {
-                className: "quick-status",
-                "aria-label": `${stylist.name} availability`,
-                children: [
-                  { value: "now", label: "Now" },
-                  { value: "later", label: "Later" },
-                  { value: "unavailable", label: "Off" }
-                ].map((option) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "button",
-                  {
-                    type: "button",
-                    className: cn(
-                      stylist.availabilityStatus === option.value && "active"
-                    ),
-                    "aria-pressed": stylist.availabilityStatus === option.value,
-                    onClick: () => quickAvailability(stylist, option.value),
-                    disabled: update.isPending,
-                    children: option.label
-                  },
-                  option.value
-                ))
-              }
-            ) : null,
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "stylist-details", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: rotationPosition >= 0 ? `#${rotationPosition + 1}` : "—" }),
+                " ",
+                "in rotation"
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: stylist.assignments.toString() }),
-                " new clients"
+                " bookings"
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: rate }),
-                " of eligible turns"
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: stylist.declines.toString() }),
-                " passes"
+                /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: stylist.services.filter(
+                  (item) => item.level !== "avoid"
+                ).length }),
+                " ",
+                "services"
               ] })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "stylist-footer", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: stylist.availabilityNote || "No hours note" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: stylist.acceptsNewClients ? "Availability checked in Booksy" : "Not accepting new clients" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx(
                 "button",
                 {

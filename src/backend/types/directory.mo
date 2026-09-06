@@ -44,6 +44,15 @@ module {
     notes : Text;
   };
 
+  public type AppointmentInput = {
+    idempotencyKey : Text;
+    clientName : Text;
+    service : Text;
+    requestedTime : Text;
+    availableStylistIds : [Nat];
+    notes : Text;
+  };
+
   public type ClientRequest = {
     id : Nat;
     idempotencyKey : Text;

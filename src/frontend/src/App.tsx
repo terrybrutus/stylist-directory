@@ -18,7 +18,7 @@ import {
   useDirectory,
   useExportBackup,
   useInitializeAccess,
-  useRouteClient,
+  useRouteAppointment,
   useSetRequestStatus,
   useSetStylistActive,
   useUpdateStylist,
@@ -64,10 +64,6 @@ const STATUS_LABELS: Record<string, string> = {
   unmatched: "Needs attention",
 };
 
-function expiryInHours(hours: number) {
-  return BigInt(Date.now() + hours * 60 * 60 * 1000) * 1_000_000n;
-}
-
 function fromNanoseconds(value: bigint) {
   if (value === 0n) return "Not yet";
   return new Intl.DateTimeFormat(undefined, {
@@ -108,29 +104,23 @@ function getStylist(stylists: Stylist[], id?: bigint) {
 }
 
 function currentRotation(stylists: Stylist[]) {
-  const now = BigInt(Date.now()) * 1_000_000n;
   return stylists
-    .filter(
-      (stylist) =>
-        stylist.active &&
-        stylist.acceptsNewClients &&
-        stylist.availabilityStatus !== "unavailable" &&
-        (stylist.availabilityExpiresAt === 0n ||
-          stylist.availabilityExpiresAt > now),
-    )
+    .filter((stylist) => stylist.active && stylist.acceptsNewClients)
     .sort((left, right) => {
-      const leftDenominator =
-        left.eligibleOpportunities === 0n ? 1n : left.eligibleOpportunities;
-      const rightDenominator =
-        right.eligibleOpportunities === 0n ? 1n : right.eligibleOpportunities;
-      const leftRate = left.assignments * rightDenominator;
-      const rightRate = right.assignments * leftDenominator;
-      if (leftRate !== rightRate) return leftRate < rightRate ? -1 : 1;
       if (left.lastAssignedAt !== right.lastAssignedAt) {
         return left.lastAssignedAt < right.lastAssignedAt ? -1 : 1;
       }
       return left.id < right.id ? -1 : 1;
     });
+}
+
+function performsService(stylist: Stylist, service: string) {
+  const requested = service.trim().toLocaleLowerCase();
+  return stylist.services.some(
+    (item) =>
+      item.name.trim().toLocaleLowerCase() === requested &&
+      item.level !== "avoid",
+  );
 }
 
 function mutationMessage(error: unknown) {
@@ -159,8 +149,8 @@ function LoginScreen() {
         <p className="eyebrow">Private workspace</p>
         <h1 id="login-title">Know who’s up next.</h1>
         <p className="login-copy">
-          A private stylist rotation for your salon team—based on real
-          availability, service fit, and fairness.
+          A private stylist rotation for your salon team—based on
+          Booksy-confirmed availability, service fit, and fairness.
         </p>
         <Button
           className="h-14 w-full text-base"
@@ -191,15 +181,15 @@ function LoginScreen() {
 }
 
 function RouteView({ dashboard }: { dashboard: Dashboard }) {
-  const route = useRouteClient();
+  const route = useRouteAppointment();
   const assign = useAssignRequest();
   const useBackup = useBackupRecommendation();
   const [clientName, setClientName] = useState("");
   const [service, setService] = useState("");
   const [timing, setTiming] = useState("now");
   const [requestedTime, setRequestedTime] = useState("");
-  const [specialtyMatters, setSpecialtyMatters] = useState(false);
   const [notes, setNotes] = useState("");
+  const [availableStylistIds, setAvailableStylistIds] = useState<bigint[]>([]);
   const [result, setResult] = useState<RoutingResult | null>(null);
   const [notice, setNotice] = useState("");
   const [overrideId, setOverrideId] = useState("");
@@ -212,20 +202,36 @@ function RouteView({ dashboard }: { dashboard: Dashboard }) {
     () => currentRotation(dashboard.stylists),
     [dashboard.stylists],
   );
+  const capableStylists = useMemo(
+    () => rotation.filter((stylist) => performsService(stylist, service)),
+    [rotation, service],
+  );
+
+  function toggleAvailable(stylistId: bigint) {
+    setAvailableStylistIds((current) =>
+      current.includes(stylistId)
+        ? current.filter((id) => id !== stylistId)
+        : [...current, stylistId],
+    );
+  }
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (!service.trim()) return;
+    if (
+      !service.trim() ||
+      availableStylistIds.length === 0 ||
+      (timing === "later" && !requestedTime)
+    )
+      return;
     setNotice("");
     route.mutate(
       {
         idempotencyKey: crypto.randomUUID(),
         clientName: clientName.trim() || "New client",
         service: service.trim(),
-        timing,
         requestedTime:
           timing === "now" ? "As soon as possible" : requestedTime.trim(),
-        specialtyMatters,
+        availableStylistIds,
         notes: notes.trim(),
       },
       {
@@ -252,7 +258,7 @@ function RouteView({ dashboard }: { dashboard: Dashboard }) {
           setService("");
           setRequestedTime("");
           setNotes("");
-          setSpecialtyMatters(false);
+          setAvailableStylistIds([]);
         },
         onError: (error) => setNotice(mutationMessage(error)),
       },
@@ -265,7 +271,7 @@ function RouteView({ dashboard }: { dashboard: Dashboard }) {
       {
         requestId: result.request.id,
         revision: result.request.revision,
-        reason: "Original recommendation was not available",
+        reason: "Busy or unavailable — turn preserved",
       },
       {
         onSuccess: (next) => setResult(next),
@@ -358,7 +364,8 @@ function RouteView({ dashboard }: { dashboard: Dashboard }) {
                     onClick={chooseBackup}
                     disabled={useBackup.isPending}
                   >
-                    <RotateCcw /> Try backup: {result.backup.name}
+                    <RotateCcw /> Can’t take it — keep place, show{" "}
+                    {result.backup.name}
                   </Button>
                 ) : null}
               </div>
@@ -445,12 +452,12 @@ function RouteView({ dashboard }: { dashboard: Dashboard }) {
             <p className="eyebrow">General rotation</p>
             <h2 id="rotation-board-heading">
               {rotation[0]
-                ? `${rotation[0].name} is up next`
-                : "No one is available"}
+                ? `${rotation[0].name} is first in line`
+                : "No stylists in rotation"}
             </h2>
           </div>
-          <span className={cn("availability-chip", rotation[0] && "available")}>
-            {rotation[0] ? "Live" : "Check team"}
+          <span className="availability-chip">
+            {rotation[0] ? "Saved order" : "Check team"}
           </span>
         </div>
         {rotation[0] ? (
@@ -462,12 +469,7 @@ function RouteView({ dashboard }: { dashboard: Dashboard }) {
               <div>
                 <strong>{rotation[0].name}</strong>
                 <span>
-                  {rotation[0].availabilityStatus === "now"
-                    ? "Available now"
-                    : "Available later"}
-                  {rotation[0].availabilityNote
-                    ? ` · ${rotation[0].availabilityNote}`
-                    : ""}
+                  Front of the rotation · keeps this place until booked
                 </span>
               </div>
               <small>{rotation[0].assignments.toString()} booked</small>
@@ -481,22 +483,19 @@ function RouteView({ dashboard }: { dashboard: Dashboard }) {
                   <li key={stylist.id.toString()}>
                     <span>{index + 2}</span>
                     <strong>{stylist.name}</strong>
-                    <small>
-                      {stylist.availabilityStatus === "now" ? "Now" : "Later"}
-                    </small>
+                    <small>{stylist.assignments.toString()} booked</small>
                   </li>
                 ))}
               </ol>
             ) : null}
             <p className="rotation-caveat">
-              The order may change when a requested service needs a specific
-              stylist.
+              Booksy determines who is free. FairChair preserves this order and
+              filters it for each opportunity.
             </p>
           </>
         ) : (
           <p className="rotation-empty">
-            Update a stylist to Available now or Available later to start the
-            rotation.
+            Add an active stylist who accepts new clients to start the rotation.
           </p>
         )}
       </section>
@@ -518,38 +517,31 @@ function RouteView({ dashboard }: { dashboard: Dashboard }) {
             next stylist.
           </p>
         </div>
-        <div className="field-grid">
-          <div className="field">
-            <Label htmlFor="client-name">
-              Client reference <span>Optional</span>
-            </Label>
-            <Input
-              id="client-name"
-              value={clientName}
-              onChange={(event) => setClientName(event.target.value)}
-              placeholder="e.g. Maria"
-              autoComplete="off"
-            />
-            <p className="field-help">
-              A first name or short note for the staff handoff.
-            </p>
-          </div>
-          <div className="field">
-            <Label htmlFor="service">Requested service</Label>
-            <Input
-              id="service"
-              list="service-options"
-              value={service}
-              onChange={(event) => setService(event.target.value)}
-              placeholder="e.g. Balayage"
-              autoComplete="off"
-            />
-            <datalist id="service-options">
-              {services.map((item) => (
-                <option key={item} value={item} />
-              ))}
-            </datalist>
-          </div>
+        <div className="field">
+          <Label htmlFor="service">What service do they want?</Label>
+          <select
+            id="service"
+            value={service}
+            onChange={(event) => {
+              setService(event.target.value);
+              setAvailableStylistIds([]);
+            }}
+            required
+          >
+            <option value="">
+              {services.length
+                ? "Choose a service"
+                : "Add stylist services first"}
+            </option>
+            {services.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+          <p className="field-help">
+            Only stylists who perform this service will be considered.
+          </p>
         </div>
         <fieldset className="field">
           <legend>When do they need it?</legend>
@@ -584,34 +576,80 @@ function RouteView({ dashboard }: { dashboard: Dashboard }) {
             />
           </div>
         ) : null}
-        <div className="switch-row">
-          <div>
-            <Label htmlFor="specialty-matters">
-              This service needs a specialist
+        <fieldset className="field availability-picker">
+          <legend>Who does Booksy show as free?</legend>
+          <p className="field-help">
+            Check Booksy for this time, then select every stylist who can take
+            the client. Busy people keep their place in the rotation.
+          </p>
+          {!service ? (
+            <div className="selection-empty">Choose a service first.</div>
+          ) : capableStylists.length === 0 ? (
+            <div className="selection-empty">
+              No active stylist is set up to perform this service.
+            </div>
+          ) : (
+            <div className="stylist-choices">
+              {capableStylists.map((stylist) => {
+                const checked = availableStylistIds.includes(stylist.id);
+                const position = rotation.findIndex(
+                  (candidate) => candidate.id === stylist.id,
+                );
+                return (
+                  <button
+                    key={stylist.id.toString()}
+                    type="button"
+                    className={cn("stylist-choice", checked && "selected")}
+                    aria-pressed={checked}
+                    onClick={() => toggleAvailable(stylist.id)}
+                  >
+                    <span className="choice-check" aria-hidden="true">
+                      {checked ? <Check /> : null}
+                    </span>
+                    <span>
+                      <strong>{stylist.name}</strong>
+                      <small>#{position + 1} in the saved rotation</small>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </fieldset>
+        <div className="field-grid">
+          <div className="field">
+            <Label htmlFor="client-name">
+              Client reference <span>Optional</span>
             </Label>
-            <p>Prioritize stylists who marked it as a service they love.</p>
+            <Input
+              id="client-name"
+              value={clientName}
+              onChange={(event) => setClientName(event.target.value)}
+              placeholder="e.g. Maria"
+              autoComplete="off"
+            />
           </div>
-          <Switch
-            id="specialty-matters"
-            checked={specialtyMatters}
-            onCheckedChange={setSpecialtyMatters}
-          />
-        </div>
-        <div className="field">
-          <Label htmlFor="route-notes">
-            Helpful notes <span>Optional</span>
-          </Label>
-          <Textarea
-            id="route-notes"
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
-            placeholder="Timing flexibility or another important detail"
-          />
+          <div className="field">
+            <Label htmlFor="route-notes">
+              Helpful notes <span>Optional</span>
+            </Label>
+            <Textarea
+              id="route-notes"
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              placeholder="Timing flexibility or another important detail"
+            />
+          </div>
         </div>
         <Button
           className="h-14 w-full text-base"
           type="submit"
-          disabled={!service.trim() || route.isPending}
+          disabled={
+            !service.trim() ||
+            availableStylistIds.length === 0 ||
+            (timing === "later" && !requestedTime) ||
+            route.isPending
+          }
         >
           {route.isPending ? (
             <LoaderCircle className="animate-spin" />
@@ -628,7 +666,7 @@ function RouteView({ dashboard }: { dashboard: Dashboard }) {
       </form>
       <div className="trust-strip" aria-label="How recommendations work">
         <span>
-          <strong>1</strong> Available
+          <strong>1</strong> Free in Booksy
         </span>
         <ChevronRight />
         <span>
@@ -798,12 +836,6 @@ function StylistForm({
       .map((item) => item.name)
       .join(", ") ?? "",
   );
-  const [availabilityStatus, setAvailabilityStatus] = useState(
-    stylist?.availabilityStatus ?? "now",
-  );
-  const [availabilityNote, setAvailabilityNote] = useState(
-    stylist?.availabilityNote ?? "",
-  );
   const [acceptsNewClients, setAcceptsNewClients] = useState(
     stylist?.acceptsNewClients ?? true,
   );
@@ -826,11 +858,10 @@ function StylistForm({
       name: name.trim(),
       phone: phone.trim(),
       services,
-      availabilityStatus,
-      availabilityNote: availabilityNote.trim(),
+      availabilityStatus: "later",
+      availabilityNote: "Check Booksy for live availability",
       acceptsNewClients,
-      availabilityExpiresAt:
-        availabilityStatus === "unavailable" ? 0n : expiryInHours(12),
+      availabilityExpiresAt: 0n,
     };
     const callbacks = {
       onSuccess: onDone,
@@ -855,8 +886,8 @@ function StylistForm({
           {stylist ? `Edit ${stylist.name}` : "Add a stylist"}
         </h1>
         <p>
-          Describe what they love, what they perform, and when they can take
-          someone new.
+          Record what they love and every service they can perform. Live
+          availability stays in Booksy.
         </p>
       </div>
       <form className="surface-form" onSubmit={submit}>
@@ -915,38 +946,14 @@ function StylistForm({
             />
           </div>
         </div>
-        <fieldset className="field">
-          <legend>Current availability</legend>
-          <div className="three-way-control">
-            {[
-              { value: "now", label: "Available now" },
-              { value: "later", label: "Available later" },
-              { value: "unavailable", label: "Unavailable" },
-            ].map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                className={cn(availabilityStatus === option.value && "active")}
-                onClick={() => setAvailabilityStatus(option.value)}
-                aria-pressed={availabilityStatus === option.value}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-          <p className="field-help">
-            Available statuses automatically expire after 12 hours to prevent
-            stale assignments.
+        <div className="booksy-note">
+          <CalendarClock />
+          <p>
+            <strong>Schedule managed in Booksy</strong>
+            <br />
+            Staff will select this stylist only when Booksy shows them free for
+            a specific client and time.
           </p>
-        </fieldset>
-        <div className="field">
-          <Label htmlFor="availability-note">Hours or timing note</Label>
-          <Input
-            id="availability-note"
-            value={availabilityNote}
-            onChange={(event) => setAvailabilityNote(event.target.value)}
-            placeholder="e.g. Today until 6, Tue–Fri 10–4"
-          />
         </div>
         <div className="switch-row">
           <div>
@@ -980,13 +987,14 @@ function StylistForm({
 }
 
 function StylistsView({ dashboard }: { dashboard: Dashboard }) {
-  const update = useUpdateStylist();
   const setActive = useSetStylistActive();
   const [editing, setEditing] = useState<Stylist | "new" | null>(null);
-  const stylists = [...dashboard.stylists].sort(
-    (a, b) =>
-      Number(b.active) - Number(a.active) || a.name.localeCompare(b.name),
-  );
+  const rotation = currentRotation(dashboard.stylists);
+  const rotationIds = new Set(rotation.map((stylist) => stylist.id));
+  const outsideRotation = dashboard.stylists
+    .filter((stylist) => !rotationIds.has(stylist.id))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const stylists = [...rotation, ...outsideRotation];
 
   if (editing)
     return (
@@ -996,27 +1004,13 @@ function StylistsView({ dashboard }: { dashboard: Dashboard }) {
       />
     );
 
-  function quickAvailability(stylist: Stylist, availabilityStatus: string) {
-    const input: StylistInput = {
-      name: stylist.name,
-      phone: stylist.phone,
-      services: stylist.services,
-      availabilityStatus,
-      availabilityNote: stylist.availabilityNote,
-      availabilityExpiresAt:
-        availabilityStatus === "unavailable" ? 0n : expiryInHours(12),
-      acceptsNewClients: stylist.acceptsNewClients,
-    };
-    update.mutate({ id: stylist.id, input, revision: stylist.revision });
-  }
-
   return (
     <section className="page-section" aria-labelledby="stylists-heading">
       <div className="page-intro intro-row">
         <div>
           <p className="eyebrow">Your team</p>
           <h1 id="stylists-heading">Stylists</h1>
-          <p>Keep service fit and availability honest.</p>
+          <p>Manage service eligibility and the saved rotation.</p>
         </div>
         <Button onClick={() => setEditing("new")}>
           <Plus /> Add stylist
@@ -1028,7 +1022,7 @@ function StylistsView({ dashboard }: { dashboard: Dashboard }) {
             <UserRound />
           </div>
           <h2>Build your team</h2>
-          <p>Add each stylist’s services and current availability.</p>
+          <p>Add each stylist and the services they can perform.</p>
           <Button onClick={() => setEditing("new")}>
             <Plus /> Add first stylist
           </Button>
@@ -1039,10 +1033,9 @@ function StylistsView({ dashboard }: { dashboard: Dashboard }) {
             const loves = stylist.services.filter(
               (item) => item.level === "love",
             );
-            const rate =
-              stylist.eligibleOpportunities === 0n
-                ? "New"
-                : `${Math.round(Number((stylist.assignments * 100n) / stylist.eligibleOpportunities))}%`;
+            const rotationPosition = rotation.findIndex(
+              (candidate) => candidate.id === stylist.id,
+            );
             return (
               <article
                 className={cn("stylist-card", !stylist.active && "archived")}
@@ -1073,48 +1066,33 @@ function StylistsView({ dashboard }: { dashboard: Dashboard }) {
                     Edit
                   </button>
                 </div>
-                {stylist.active ? (
-                  <div
-                    className="quick-status"
-                    aria-label={`${stylist.name} availability`}
-                  >
-                    {[
-                      { value: "now", label: "Now" },
-                      { value: "later", label: "Later" },
-                      { value: "unavailable", label: "Off" },
-                    ].map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        className={cn(
-                          stylist.availabilityStatus === option.value &&
-                            "active",
-                        )}
-                        aria-pressed={
-                          stylist.availabilityStatus === option.value
-                        }
-                        onClick={() => quickAvailability(stylist, option.value)}
-                        disabled={update.isPending}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
                 <div className="stylist-details">
                   <span>
-                    <strong>{stylist.assignments.toString()}</strong> new
-                    clients
+                    <strong>
+                      {rotationPosition >= 0 ? `#${rotationPosition + 1}` : "—"}
+                    </strong>{" "}
+                    in rotation
                   </span>
                   <span>
-                    <strong>{rate}</strong> of eligible turns
+                    <strong>{stylist.assignments.toString()}</strong> bookings
                   </span>
                   <span>
-                    <strong>{stylist.declines.toString()}</strong> passes
+                    <strong>
+                      {
+                        stylist.services.filter(
+                          (item) => item.level !== "avoid",
+                        ).length
+                      }
+                    </strong>{" "}
+                    services
                   </span>
                 </div>
                 <div className="stylist-footer">
-                  <span>{stylist.availabilityNote || "No hours note"}</span>
+                  <span>
+                    {stylist.acceptsNewClients
+                      ? "Availability checked in Booksy"
+                      : "Not accepting new clients"}
+                  </span>
                   <button
                     type="button"
                     onClick={() =>

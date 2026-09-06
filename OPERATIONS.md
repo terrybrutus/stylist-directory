@@ -13,11 +13,12 @@ FairChair keeps its live directory, routing ledger, and audit history in persist
 ## Routine safeguards
 
 - Export the application backup at least weekly and after major schedule or staffing changes.
+- Treat Booksy as the authoritative calendar. FairChair records who staff marked free for each opportunity but does not replace or synchronize the Booksy schedule yet.
 - Keep more than one backup generation and keep one copy outside the device used at the front desk.
 - Monitor canister cycles and top up well before the warning threshold.
 - Test snapshot restoration on a non-production canister quarterly.
 - Give controller access and the owner identity to at least two trusted recovery custodians.
-- Never treat a browser confirmation as saved until FairChair shows the confirmed record in **Today**.
+- Never treat a browser confirmation as saved until FairChair shows the confirmed record in **Booked**.
 
 ## Recovery order
 

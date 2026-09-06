@@ -7,21 +7,6 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
-export interface AuditEvent {
-    id: bigint;
-    requestId?: bigint;
-    stylistId?: bigint;
-    kind: string;
-    createdAt: bigint;
-    detail: string;
-}
-export type Result = {
-    __kind__: "ok";
-    ok: null;
-} | {
-    __kind__: "err";
-    err: Error_;
-};
 export interface ClientRequest {
     id: bigint;
     service: string;
@@ -45,19 +30,13 @@ export interface Backup {
     exportedAt: bigint;
     version: bigint;
 }
-export interface StylistInput {
-    name: string;
-    acceptsNewClients: boolean;
-    availabilityExpiresAt: bigint;
-    availabilityNote: string;
-    phone: string;
-    services: Array<ServicePreference>;
-    availabilityStatus: string;
-}
-export interface Dashboard {
-    audit: Array<AuditEvent>;
-    stylists: Array<Stylist>;
-    requests: Array<ClientRequest>;
+export interface AppointmentInput {
+    service: string;
+    idempotencyKey: string;
+    clientName: string;
+    availableStylistIds: Array<bigint>;
+    notes: string;
+    requestedTime: string;
 }
 export interface Stylist {
     id: bigint;
@@ -77,11 +56,6 @@ export interface Stylist {
     revision: bigint;
     services: Array<ServicePreference>;
     availabilityStatus: string;
-}
-export interface Stylist__1 {
-    name: string;
-    specialty: string;
-    availability: string;
 }
 export type Error_ = {
     __kind__: "FrontendOriginsNotConfigured";
@@ -127,6 +101,40 @@ export type Error_ = {
         expected: Array<string>;
     };
 };
+export interface AuditEvent {
+    id: bigint;
+    requestId?: bigint;
+    stylistId?: bigint;
+    kind: string;
+    createdAt: bigint;
+    detail: string;
+}
+export type Result = {
+    __kind__: "ok";
+    ok: null;
+} | {
+    __kind__: "err";
+    err: Error_;
+};
+export interface StylistInput {
+    name: string;
+    acceptsNewClients: boolean;
+    availabilityExpiresAt: bigint;
+    availabilityNote: string;
+    phone: string;
+    services: Array<ServicePreference>;
+    availabilityStatus: string;
+}
+export interface Dashboard {
+    audit: Array<AuditEvent>;
+    stylists: Array<Stylist>;
+    requests: Array<ClientRequest>;
+}
+export interface Stylist__1 {
+    name: string;
+    specialty: string;
+    availability: string;
+}
 export interface RouteInput {
     service: string;
     idempotencyKey: string;
@@ -161,6 +169,7 @@ export interface backendInterface {
     getDashboard(): Promise<Dashboard>;
     getStylists(): Promise<Array<Stylist__1>>;
     isCallerAdmin(): Promise<boolean>;
+    routeAppointment(input: AppointmentInput): Promise<RoutingResult>;
     routeClient(input: RouteInput): Promise<RoutingResult>;
     setRequestStatus(requestId: bigint, status: string, expectedRevision: bigint, reason: string): Promise<ClientRequest>;
     setStylistActive(id: bigint, active: boolean, expectedRevision: bigint): Promise<Stylist>;

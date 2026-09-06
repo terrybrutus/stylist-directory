@@ -128,6 +128,15 @@ type AuditEvent =
    requestId: opt nat;
    stylistId: opt nat;
  };
+type AppointmentInput =
+ record {
+   availableStylistIds: vec nat;
+   clientName: text;
+   idempotencyKey: text;
+   notes: text;
+   requestedTime: text;
+   "service": text;
+ };
 service : {
   _initialize_access_control: () -> ();
   _internet_identity_sign_in_finish: () -> (Result);
@@ -143,6 +152,7 @@ service : {
   getDashboard: () -> (Dashboard) query;
   getStylists: () -> (vec Stylist__1) query;
   isCallerAdmin: () -> (bool) query;
+  routeAppointment: (input: AppointmentInput) -> (RoutingResult);
   routeClient: (input: RouteInput) -> (RoutingResult);
   setRequestStatus: (requestId: nat, status: text, expectedRevision:
    nat, reason: text) -> (ClientRequest);

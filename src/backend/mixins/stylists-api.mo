@@ -44,6 +44,11 @@ mixin (stylists : List.List<Types.Stylist>, directoryState : DirectoryLib.State,
     DirectoryLib.routeClient(directoryState, input)
   };
 
+  public shared ({ caller }) func routeAppointment(input : DirectoryTypes.AppointmentInput) : async DirectoryTypes.RoutingResult {
+    ensureAdmin(caller);
+    DirectoryLib.routeAppointment(directoryState, input)
+  };
+
   public shared ({ caller }) func assignRequest(requestId : Nat, stylistId : Nat, expectedRevision : Nat, note : Text) : async DirectoryTypes.ClientRequest {
     ensureAdmin(caller);
     DirectoryLib.assignRequest(directoryState, requestId, stylistId, expectedRevision, note)
